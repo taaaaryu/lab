@@ -48,6 +48,7 @@ for r in range(1, redundancy + 1):
 comb_labels = ['\n'.join([str(s) for s in comb]) for comb in all_combinations]
 comb_labels_sparse = [comb_labels[i] if i % (2**(n-3)-1) == 0 else '' for i in range(len(comb_labels))]
 
+
 # x軸を冗長化度、y軸をサービスの組み合わせ、z軸をシステムの非可用性としてプロット
 fig = plt.figure(figsize=(12, 8))
 ax = fig.add_subplot(111, projection='3d')
@@ -68,14 +69,14 @@ ax.set_yticklabels(comb_labels_sparse, fontsize=8, rotation=0, va='center', ha='
 for y in range(1, redundancy + 1):
     ax.plot(np.full(num_comb, y), np.arange(1, num_comb + 1), Z[y-1, :], color='k',  linestyle='-', linewidth=1, zorder=10)
 
-# z軸の表示範囲を設定
+
 ax.set_zlim(1e-5, 9e-1)
 
 ax.set_xlabel('Redundancy Level')
 ax.set_ylabel('Service Combinations')
 ax.set_zlabel('System Unavailability (log scale)')
 ax.set_zscale('log')
-ax.set_title(f'num of service={n}, server_availability = {server_avail}, h_add = {h_add}, resource = 20')
+ax.set_title(f'num of service={n}, server_availability = {server_avail}, service_availability = {service_avail}')
 
 ax.view_init(elev=20, azim=30)  # elev: 上下の角度, azim: 水平の角度
 plt.show()

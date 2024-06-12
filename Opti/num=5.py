@@ -5,12 +5,12 @@ from itertools import combinations, chain
 from matplotlib.colors import to_rgba
 
 # 定数
-n = 10  # サービス数
+n = 5  # サービス数
 services = [i for i in range(1, n + 1)]
-service_avail = [0.7, 0.8 ,0.9, 0.8, 0.8]
+service_avail = [0.7, 0.9 ,0.9, 0.9, 0.9]
 server_avail = 0.99
-server_resource = [30]  # サーバの台数
-h_add = 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
+server_resource = [i for i in range(1, 31)]  # サーバの台数
+h_add = 1  # サービス数が1増えるごとに使うサーバ台数の増加
 
 start_time = time.time()  # 処理開始時間
 

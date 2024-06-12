@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # 定数
 n = 10  # サービス数
 services = [i for i in range(1, n + 1)]
-service_avail = [0.7, 0.8 ,0.9, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
+service_avail = [0.7, 0.9 ,0.9, 0.9, 0.9, 0.7, 0.9, 0.9, 0.9, 0.9]
 server_avail = 0.9
 h_add = 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
 H = 20  # 全体のリソース
@@ -76,7 +76,7 @@ ax.set_xlabel('Redundancy Level')
 ax.set_ylabel('Service Combinations')
 ax.set_zlabel('System Unavailability (log scale)')
 ax.set_zscale('log')
-ax.set_title(f'num of service={n}, server_availability = {server_avail}, h_add = {h_add}, resource = 20')
+ax.set_title(f'num of service={n}, server_availability = {server_avail}, service_availability = {service_avail}')
 
 ax.view_init(elev=20, azim=30)  # elev: 上下の角度, azim: 水平の角度
 plt.show()
