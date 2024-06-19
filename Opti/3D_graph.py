@@ -7,11 +7,11 @@ from mpl_toolkits.mplot3d import Axes3D
 # 定数
 n = 10  # サービス数
 services = [i for i in range(1, n + 1)]
-service_avail = [0.9]*n
-server_avail = 0.9
-h_add = 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
-H = 20  # 全体のリソース
-redundancy = 5  # 最大の冗長化数
+service_avail = [0.99]*n
+server_avail = 0.99
+h_add = 1  # サービス数が1増えるごとに使うサーバ台数の増加
+H = 15  # 全体のリソース
+redundancy = 3  # 最大の冗長化数
 
 # ソフトウェアの可用性を計算する関数
 def calc_software_av(services_group):

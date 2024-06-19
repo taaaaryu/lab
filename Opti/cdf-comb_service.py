@@ -10,7 +10,7 @@ num_software = 3
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-H = 20  # サーバの台数
+H = 15  # サーバの台数
 h_add = 1  # サービス数が1増えるごとに使うサーバ台数の増加
 
 start_time = time.time()  # 処理開始時間

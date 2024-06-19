@@ -6,9 +6,10 @@ from matplotlib.colors import to_rgba
 
 # 定数
 n = 10  # サービス数
-num_software = 5
+num_software = 3
 services = [i for i in range(1, n + 1)]
-service_avail = [0.99]*n
+#service_avail = [0.99]*n
+service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 H = 15  # サーバの台数
 h_add = 1  # サービス数が1増えるごとに使うサーバ台数の増加
@@ -81,15 +82,18 @@ for comb in all_combinations:
         num_r = best_improvement[3]
         total_servers = sum(redundancy)
 
-    comb_max_system_avail.append((comb, max_avail))
+    comb_max_system_avail.append((comb, max_avail,num_r))
     system_av_forCDF.append(max_avail)
     
+a = sorted(comb_max_system_avail,key=lambda x:x[1])
+print(a)
 
 #CDFにする
 placement_sx = sorted(system_av_forCDF)
 N = len(system_av_forCDF)
 placement_sy = [i/N for i in range(N)]
 
+print("-----------------------------")
 
 #冗長化度合いによるCDFの計算
 
@@ -124,7 +128,8 @@ for redundancy in all_redundancies:
         results.append((redundancy, best_combination, max_system_avail))
 
 # プロットに必要なデータを確認
-for redundancy, comb, max_avail in results:
+b = sorted(results,key=lambda x:x[2])
+for redundancy, comb, max_avail in b:
     print(f"Redundancy: {redundancy}, Best Combination: {comb}, Max System Availability: {max_avail}")
 
 
@@ -146,13 +151,16 @@ label2="redundancy"
 
 ax.plot(placement_sx,placement_sy, color='b', alpha=0.7,label = label1)
 ax.plot(redundancy_sx,redundancy_sy, color='r', alpha=0.7,label = label2)
+#plt.hlines(0.25, 0, 1, "gray", linestyles='dashed')
+#plt.hlines(0.5, 0, 1, "gray", linestyles='dashed')
+#plt.hlines(0.75, 0, 1, "gray", linestyles='dashed')””
 
 # ラベルを追加
 ax.set_xlabel('System Availability')
 ax.set_ylabel('CDF')
 #ax.set_title('System Availability for Different Service Combinations')
-
-ax.set_xscale('log')
+#ax.set_xlim(0.87,1.0)
+#ax.set_xscale('log')
 ax.legend()
 
 ax.set_title(f"n = {n}, resource = {H}, num_software = {num_software}")
