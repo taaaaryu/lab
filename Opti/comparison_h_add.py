@@ -6,11 +6,11 @@ from matplotlib.colors import to_rgba
 
 # 定数
 n = 10  # サービス数
-num_software = 5
+num_software = 7
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99] * n
 server_avail = 0.99
-H = 20  # サーバの台数
+H = 25  # サーバの台数
 
 h_add_values = [0.5, 1, 1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
@@ -127,8 +127,8 @@ for h_add in h_add_values:
     label1 = f"placement (h_add={h_add})"
     label2 = f"redundancy (h_add={h_add})"
 
-    ax.plot(placement_sx, placement_sy, color=to_rgba(colors[h_add], 0.7), linewidth=2, marker='o', label=label1)
-    ax.plot(redundancy_sx, redundancy_sy, color=to_rgba(colors[h_add], 1.0), linewidth=2, linestyle='dashed', marker='x', label=label2)
+    ax.plot(placement_sx, placement_sy, color=to_rgba(colors[h_add], 0.7), alpha=0.7, label=label1)
+    ax.plot(redundancy_sx, redundancy_sy, color=to_rgba(colors[h_add], 1.0), alpha=0.7, linestyle='dashed', label=label2)
 
 # ラベルを追加
 ax.set_xlabel('System Availability')

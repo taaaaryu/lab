@@ -11,8 +11,8 @@ services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-H = 13  # サーバの台数
-h_add = 1  # サービス数が1増えるごとに使うサーバ台数の増加
+H = 15  # サーバの台数
+h_add = 1.5  # サービス数が1増えるごとに使うサーバ台数の増加
 
 start_time = time.time()  # 処理開始時間
 
@@ -101,7 +101,7 @@ print("-----------------------------")
 # 冗長化の組み合わせを生成する関数
 def generate_redundancy_combinations(num_software, max_servers, h_add):
     all_redundancies = []
-    for redundancy in product(range(1, max_servers // h_add + 1), repeat=num_software):
+    for redundancy in product(range(1, max_servers // 2), repeat=num_software):
         if sum(redundancy) * h_add <= max_servers:
             all_redundancies.append(redundancy)
     return all_redundancies
@@ -159,7 +159,7 @@ ax.plot(redundancy_sx,redundancy_sy, color='r', alpha=0.7,label = label2)
 ax.set_xlabel('System Availability')
 ax.set_ylabel('CDF')
 #ax.set_title('System Availability for Different Service Combinations')
-#ax.set_xlim(0.87,1.0)
+ax.set_xlim(0.87,1.0)
 #ax.set_xscale('log')
 ax.legend()
 
