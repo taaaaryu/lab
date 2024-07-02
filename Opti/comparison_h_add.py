@@ -6,7 +6,7 @@ from matplotlib.colors import to_rgba
 
 # 定数
 n = 10  # サービス数
-num_software = 5
+num_software = 7
 services = [i for i in range(1, n + 1)]
 service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
