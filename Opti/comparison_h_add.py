@@ -6,9 +6,9 @@ from matplotlib.colors import to_rgba
 
 # 定数
 n = 10  # サービス数
-num_software = 7
+num_software = 5
 services = [i for i in range(1, n + 1)]
-service_avail = [0.99] * n
+service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 H = 25  # サーバの台数
 
@@ -107,7 +107,7 @@ for h_add in h_add_values:
         max_system_avail = -1
         best_combination = None
         for comb in all_combinations:
-            total_servers = sum(redundancy[i] * len(comb[i]) for i in range(len(comb)))
+            total_servers = sum(redundancy[i] * (h_add*(len(comb[i])-1)+1) for i in range(len(comb)))
             if total_servers <= H:
                 software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
                 system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
@@ -133,7 +133,7 @@ for h_add in h_add_values:
 # ラベルを追加
 ax.set_xlabel('System Availability')
 ax.set_ylabel('CDF')
-ax.set_xlim(0.87, 1.0)
+ax.set_xlim(0.7, 1.0)
 ax.legend()
 ax.set_title(f"n = {n}, resource = {H}, num_software = {num_software}")
 
