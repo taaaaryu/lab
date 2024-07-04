@@ -1,19 +1,24 @@
 import time
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+
 import numpy as np
 from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # 定数
 n = 10  # サービス数
-num_software = 5
+software = [1,3,5,7,10]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 H = 20  # サーバの台数
 
-h_add_values = [0.5, 1, 1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+h_add= 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
+
+
+cm = plt.get_cmap("coolwarm")
 
 # ソフトウェアの可用性を計算する関数
 def calc_software_av(services_group, service_avail):
@@ -38,18 +43,17 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
             all_redundancies.append(redundancy)
     return all_redundancies
 
-colors = {
-    0.5: 'red',
-    1: 'blue',
-    1.5: 'green'
-}
 
 # プロットを作成
 fig, ax = plt.subplots(figsize=(12, 8))
+color_alpha = 0 #alpha用
+plus_alpha = 1/(len(software)-1)
 
-for h_add in h_add_values:
+
+for num_software in software:
     all_combinations = generate_service_combinations(services, num_software)
     all_redundancies = generate_redundancy_combinations(num_software, H, h_add)
+    progress_tqdm = tqdm(total = len(all_combinations)+len(all_redundancies), unit = "count")
 
     # サービス実装形態によるCDFの計算
     comb_max_system_avail = []
@@ -97,13 +101,13 @@ for h_add in h_add_values:
 
         comb_max_system_avail.append((comb, max_avail, num_r))
         system_av_forCDF.append(max_avail)
+        progress_tqdm.update(1)
 
     placement_sx = sorted(system_av_forCDF)
     N = len(system_av_forCDF)
     placement_sy = [i / N for i in range(N)]
 
-    
-    start_time = time.time()  # 処理開始時間
+
 
     # 冗長化度合いによるCDFの計算
     results = []
@@ -121,30 +125,32 @@ for h_add in h_add_values:
                     best_combination = comb
         if best_combination:
             results.append((redundancy, best_combination, max_system_avail))
+        progress_tqdm.update(1)
 
     max_avails = [max_avail for _, _, max_avail in results]
     redundancy_sx = sorted(max_avails)
     N = len(redundancy_sx)
     redundancy_sy = [i / N for i in range(N)]
 
-    end_time = time.time()  # 処理終了時間
-    elapsed_time = end_time - start_time  # 経過時間
-
-    print("Elapsed time: {:.2f} seconds".format(elapsed_time))
 
     # プロット
-    label1 = f"placement (h_add={h_add})"
-    label2 = f"redundancy (h_add={h_add})"
+    label1 = f"placement (software={num_software})"
+    label2 = f"redundancy (software={num_software})"
 
-    ax.plot(placement_sx, placement_sy, color=to_rgba(colors[h_add], 0.7), alpha=0.7, label=label1)
-    ax.plot(redundancy_sx, redundancy_sy, color=to_rgba(colors[h_add], 1.0), alpha=0.7, linestyle='dashed', label=label2)
+    ax.plot(placement_sx, placement_sy, color=cm(color_alpha), label=label1)
+    ax.plot(redundancy_sx, redundancy_sy, color=cm(color_alpha), linestyle='dashed', label=label2)
+    color_alpha += plus_alpha
+    
 
 # ラベルを追加
+
+progress_tqdm.close()
+
 ax.set_xlabel('System Availability')
 ax.set_ylabel('CDF')
-ax.set_xlim(0.87, 1.0)
+ax.set_xlim(0.80, 1.0)
 ax.legend()
-ax.set_title(f"n = {n}, resource = {H}, num_software = {num_software}")
+ax.set_title(f"n = {n}, resource = {H}, h_add = {h_add}")
 
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
