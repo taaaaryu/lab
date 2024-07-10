@@ -5,15 +5,20 @@ import numpy as np
 from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
+# パラメータ
+H = 15  # サーバリソース
+h_add= 1  # サービス数が1増えるごとに使うサーバ台数の増加
+
+
 # 定数
 n = 10  # サービス数
-softwares = [i for i in range(1, 3)]
+softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-H = 15.0  # サーバの台数
-h_add= 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
+alloc = H*0.7  #サーバリソースの下限
+max_redundancy = 5
 
 # ソフトウェアの可用性を計算する関数
 def calc_software_av(services_group, service_avail):
@@ -32,7 +37,7 @@ def generate_service_combinations(services, num_software):
 
 # 冗長化の組み合わせを生成する関数
 def generate_redundancy_combinations(num_software, max_servers, h_add):
-    all_redundancies = [redundancy for redundancy in product(range(1, 5), repeat=num_software)]
+    all_redundancies = [redundancy for redundancy in product(range(1, max_redundancy), repeat=num_software)]
     return all_redundancies
 
 # プロットを作成
@@ -45,57 +50,31 @@ software_result = []
 for num_software in softwares:
     all_combinations = generate_service_combinations(services, num_software)
     all_redundancies = generate_redundancy_combinations(num_software, H, h_add)
-    print(len(all_redundancies))
     progress_tqdm = tqdm(total = len(all_combinations)+len(all_redundancies), unit = "count")
 
     # サービス実装形態によるCDFの計算
-    save_system_av = []
-
+    p_results = []
     for comb in all_combinations:
-        max_avail = -1
-        redundancy = [1] * len(comb)  # 冗長化してないときのソフトウェアごとに使用するサーバリソースを計算
-        num_r = [1] * len(comb)
-        for i in range(len(comb)):
-            redundancy[i] += (len(comb[i]) - 1) * h_add
-        total_servers = sum(redundancy)
-        base_redundancy = redundancy.copy()
-
-        while total_servers <= H:
-            software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-            system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, num_r)])
-
-            if system_avail > max_avail:
-                max_avail = system_avail
-
-            # システム可用性が最も上昇するように1つのソフトウェアを冗長化
-            improvements = []
-            for i in range(len(comb)):  # あるサービス組み合わせにおいて、1つのソフトウェアを冗長化
-                new_redundancy = redundancy.copy()
-                new_num_r = num_r.copy()
-                new_redundancy[i] += base_redundancy[i]
-                new_num_r[i] += 1
-                new_total_servers = sum(new_redundancy)
-                if new_total_servers > H or any(r > 4 for r in new_num_r):  # 追加: 冗長化数の上限を4に設定
-                    continue
-                new_software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-                new_system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(new_software_availability, new_num_r)])
-                improvement = new_system_avail - system_avail
-                improvements.append((improvement, i, new_redundancy, new_num_r))
-
-            if not improvements:
-                break
-
-            # 最大の改善をもたらす冗長化を適用
-            best_improvement = max(improvements)
-            redundancy = best_improvement[2]
-            num_r = best_improvement[3]
-            total_servers = sum(redundancy)
-
-        save_system_av.append(max_avail)
+        max_system_avail = -1
+        best_redundancy = None
+        for redundancy in all_redundancies:
+            total_servers = sum(redundancy[i] * ((h_add*(len(comb[i])-1))+1) for i in range(len(comb)))
+            if total_servers <= H:
+                if alloc <= total_servers:
+                    software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
+                    system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
+                    if system_avail > max_system_avail:
+                        max_system_avail = system_avail
+                        best_redundancy = redundancy
+        if best_redundancy:
+            p_results.append((comb, best_redundancy, max_system_avail))
         progress_tqdm.update(1)
-    max_soft_placement = max(save_system_av)
-    software_result.append(max_soft_placement)
-    placement_result.extend(save_system_av)
+    
+    if len(p_results)!=0:
+        max_avails = [max_avail for _, _, max_avail in p_results]
+        max_soft_placement = max(max_avails)
+        placement_result.extend(max_avails)
+
 
     # 冗長化度合いによるCDFの計算
     results = []
@@ -105,40 +84,41 @@ for num_software in softwares:
         for comb in all_combinations:
             total_servers = sum(redundancy[i] * ((h_add*(len(comb[i])-1))+1) for i in range(len(comb)))
             if total_servers <= H:
-                software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-                system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
-                if system_avail > max_system_avail:
-                    max_system_avail = system_avail
-                    best_combination = comb
+                if alloc <= total_servers:
+                    software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
+                    system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
+                    if system_avail > max_system_avail:
+                        max_system_avail = system_avail
+                        best_combination = comb
         if best_combination:
             results.append((redundancy, best_combination, max_system_avail))
         progress_tqdm.update(1)
 
     # カバーされている冗長化組み合わせを削除
-    optimized_results = []
+    '''optimized_results = []
     for redundancy, comb, max_avail in results:
         if not any(all(r_old >= r_new for r_old, r_new in zip(existing[0], redundancy)) for existing in results if existing[0] != redundancy):
-            optimized_results.append((redundancy, comb, max_avail))
-    print(optimized_results)
-    max_avails = [max_avail for _, _, max_avail in optimized_results]
-    max_soft_redundancy = max(max_avails)
-    redundancy_result.extend(max_avails)
-
-    print(max_soft_placement)
-    print(max_soft_redundancy)
+            optimized_results.append((redundancy, comb, max_avail))'''
+    
+    if len(results)!=0:
+        max_avails = [max_avail for _, _, max_avail in results]
+        max_soft_redundancy = max(max_avails)
+        redundancy_result.extend(max_avails)
+        software_result.append(max_soft_redundancy)
 
 # ラベルを追加
 placement_sx = sorted(placement_result)
 N = len(placement_sx)
-placement_sy = [i / N for i in range(N)]
+placement_sy = [i / (N-1) for i in range(N)]
 
 redundancy_sx = sorted(redundancy_result)
 N = len(redundancy_sx)
-redundancy_sy = [i / N for i in range(N)]
+redundancy_sy = [i / (N-1) for i in range(N)]
 
 software_sx = sorted(software_result)
+print(software_result)
 N = len(software_sx)
-software_sy = [i / N for i in range(N)]
+software_sy = [i / (N-1) for i in range(N)]
 
 # プロット
 label1 = f"placement"
