@@ -6,8 +6,8 @@ from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # パラメータ
-H = 15  # サーバリソース
-h_add= 1  # サービス数が1増えるごとに使うサーバ台数の増加
+H = 25  # サーバリソース
+h_add= 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
