@@ -6,8 +6,8 @@ from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # パラメータ
-H = 25  # サーバリソース
-h_add= 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
+H = 15  # サーバリソース
+h_add= 1.5  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
@@ -16,8 +16,8 @@ softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
-server_avail = 0.99
-alloc = H*0.7  #サーバリソースの下限
+server_avails = 0.99
+alloc = H*0.95  #サーバリソースの下限
 max_redundancy = 5
 
 # ソフトウェアの可用性を計算する関数
@@ -40,9 +40,9 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
     all_redundancies = [redundancy for redundancy in product(range(1, max_redundancy), repeat=num_software)]
     return all_redundancies
 
+
 # プロットを作成
 fig, ax = plt.subplots(figsize=(12, 8))
-
 placement_result = []
 redundancy_result = []
 software_result = []
@@ -121,19 +121,19 @@ N = len(software_sx)
 software_sy = [i / (N-1) for i in range(N)]
 
 # プロット
-label1 = f"placement"
+label1 = f"Implementation"
 label2 = f"redundancy"
 label3 = f"software"
 
-ax.plot(placement_sx, placement_sy, label=label1)
-ax.plot(redundancy_sx, redundancy_sy, label=label2)
-ax.plot(software_sx, software_sy, label=label3)
+ax.plot(placement_sx, placement_sy, label=label1, color = "g")
+ax.plot(redundancy_sx, redundancy_sy, label=label2, color = "orange")
+ax.plot(software_sx, software_sy, label=label3,color = "b")
 
 progress_tqdm.close()
 
 ax.set_xlabel('System Availability')
 ax.set_ylabel('CDF')
-ax.set_xlim(0.8, 1.0)
+ax.set_xlim(0.6, 1.0)
 ax.legend()
 ax.set_title(f"n = {n}, resource = {H}, h_add = {h_add}")
 
