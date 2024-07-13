@@ -40,10 +40,8 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
     all_redundancies = [redundancy for redundancy in product(range(1, max_redundancy), repeat=num_software)]
     return all_redundancies
 
-line = ["dashed","solid"]
 
-# プロットを作成
-fig, ax = plt.subplots(figsize=(12, 8))
+# 各組み合わせにおける最大値を算出
 for server_avail in server_avails:
     lstyle = server_avails.index(server_avail)
     print(lstyle)
@@ -124,24 +122,6 @@ for server_avail in server_avails:
     N = len(software_sx)
     software_sy = [i / (N-1) for i in range(N)]
 
-    # プロット
-    label1 = f"Implementation, server_avail = {server_avail}"
-    label2 = f"redundancy, server_avail = {server_avail}"
-    label3 = f"software, server_avail = {server_avail}"
-
-    ax.plot(placement_sx, placement_sy, label=label1, color = "g", linestyle = line[lstyle])
-    ax.plot(redundancy_sx, redundancy_sy, label=label2, color = "orange", linestyle = line[lstyle])
-    ax.plot(software_sx, software_sy, label=label3,color = "b", linestyle = line[lstyle])
 
 progress_tqdm.close()
 
-ax.set_xlabel('System Availability')
-ax.set_ylabel('CDF')
-ax.set_xlim(0.6, 1.0)
-ax.legend()
-ax.set_title(f"n = {n}, resource = {H}, h_add = {h_add}")
-
-plt.xticks(rotation=45, ha='right')
-plt.tight_layout()
-
-plt.show()
