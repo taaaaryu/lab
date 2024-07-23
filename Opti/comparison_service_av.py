@@ -6,15 +6,15 @@ from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # パラメータ
-H = 20  # サーバリソース
-h_add= 1.5  # サービス数が1増えるごとに使うサーバ台数の増加
+H = 25  # サーバリソース
+h_add= 1  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
 n = 10  # サービス数
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
-service_avails = [[0.99]*n, [0.95, 0.99, 0.99, 0.99, 0.99, 0.95, 0.99, 0.99, 0.99, 0.99]]
+service_avails = [[0.99]*n, [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99],[0.9, 0.99, 0.9, 0.99, 0.99, 0.9, 0.99, 0.9, 0.99, 0.99]]
 server_avail = 0.99
 alloc = H*0.95  #サーバリソースの下限
 max_redundancy = 5
@@ -39,8 +39,8 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
     all_redundancies = [redundancy for redundancy in product(range(1, max_redundancy), repeat=num_software)]
     return all_redundancies
 
-line = ["solid","dashed"]
-service =["100% 0.99","80% 0.99, 20% 0.95"]
+line = ["solid","dashed","dashdot"]
+service =["100% 0.99","80% 0.99, 20% 0.9","60% 0.99, 40% 0.9"]
 count = 0
 
 # プロットを作成

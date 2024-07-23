@@ -14,8 +14,8 @@ h_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台�
 n = 10  # サービス数
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
-service_avail = [0.99]*n
-#service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
+#service_avail = [0.99]*n
+service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 max_redundancy = 5
 
@@ -43,7 +43,6 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
 
 for H in resource:
     alloc = H*0.95  #サーバリソースの下限
-    :jo
     for h_add in h_adds:
         placement_result = []
         redundancy_result = []
