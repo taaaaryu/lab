@@ -6,8 +6,8 @@ from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # パラメータ
-H = 25  # サーバリソース
-h_add= 1  # サービス数が1増えるごとに使うサーバ台数の増加
+H = 20  # サーバリソース
+h_add= 1.5  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
@@ -72,7 +72,7 @@ for service_avail in service_avails:
             if best_redundancy:
                 p_results.append((comb, best_redundancy, max_system_avail))
             progress_tqdm.update(1)
-
+        
         if len(p_results)!=0:
             max_avails = [max_avail for _, _, max_avail in p_results]
             max_soft_placement = max(max_avails)
@@ -96,7 +96,7 @@ for service_avail in service_avails:
             if best_combination:
                 results.append((redundancy, best_combination, max_system_avail))
             progress_tqdm.update(1)
-
+        
         if len(results)!=0:
             max_avails = [max_avail for _, _, max_avail in results]
             max_soft_redundancy = max(max_avails)
@@ -125,7 +125,7 @@ for service_avail in service_avails:
     ax.plot(placement_sx, placement_sy, label=label1, color = "g", linestyle = line[count])
     ax.plot(redundancy_sx, redundancy_sy, label=label2, color = "orange", linestyle = line[count])
     ax.plot(software_sx, software_sy, label=label3,color = "b", linestyle = line[count])
-
+    
     count+=1
 
 progress_tqdm.close()

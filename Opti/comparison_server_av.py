@@ -7,16 +7,15 @@ from matplotlib.colors import to_rgba
 
 # パラメータ
 H = 25  # サーバリソース
-h_add= 1  # サービス数が1増えるごとに使うサーバ台数の増加
+h_add= 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
 n = 10  # サービス数
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
-service_avail = [0.99]*n
-#service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
-server_avails = [0.95,0.99]
+service_avails = [[0.99]*n, [0.95, 0.99, 0.99, 0.99, 0.99, 0.95, 0.99, 0.99, 0.99, 0.99]]
+server_avail = 0.99
 alloc = H*0.95  #サーバリソースの下限
 max_redundancy = 5
 
@@ -40,13 +39,13 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
     all_redundancies = [redundancy for redundancy in product(range(1, max_redundancy), repeat=num_software)]
     return all_redundancies
 
-line = ["dashed","solid"]
+line = ["solid","dashed"]
+service =["100% 0.99","80% 0.99, 20% 0.95"]
+count = 0
 
 # プロットを作成
 fig, ax = plt.subplots(figsize=(12, 8))
-for server_avail in server_avails:
-    lstyle = server_avails.index(server_avail)
-    print(lstyle)
+for service_avail in service_avails:
     placement_result = []
     redundancy_result = []
     software_result = []
@@ -97,12 +96,6 @@ for server_avail in server_avails:
             if best_combination:
                 results.append((redundancy, best_combination, max_system_avail))
             progress_tqdm.update(1)
-
-        # カバーされている冗長化組み合わせを削除
-        '''optimized_results = []
-        for redundancy, comb, max_avail in results:
-            if not any(all(r_old >= r_new for r_old, r_new in zip(existing[0], redundancy)) for existing in results if existing[0] != redundancy):
-                optimized_results.append((redundancy, comb, max_avail))'''
         
         if len(results)!=0:
             max_avails = [max_avail for _, _, max_avail in results]
@@ -125,13 +118,15 @@ for server_avail in server_avails:
     software_sy = [i / (N-1) for i in range(N)]
 
     # プロット
-    label1 = f"Implementation, server_avail = {server_avail}"
-    label2 = f"redundancy, server_avail = {server_avail}"
-    label3 = f"software, server_avail = {server_avail}"
+    label1 = f"Implementation, service_avail = {service[count]}"
+    label2 = f"redundancy, service_avail = {service[count]}"
+    label3 = f"software, service_avail = {service[count]}"
 
-    ax.plot(placement_sx, placement_sy, label=label1, color = "g", linestyle = line[lstyle])
-    ax.plot(redundancy_sx, redundancy_sy, label=label2, color = "orange", linestyle = line[lstyle])
-    ax.plot(software_sx, software_sy, label=label3,color = "b", linestyle = line[lstyle])
+    ax.plot(placement_sx, placement_sy, label=label1, color = "g", linestyle = line[count])
+    ax.plot(redundancy_sx, redundancy_sy, label=label2, color = "orange", linestyle = line[count])
+    ax.plot(software_sx, software_sy, label=label3,color = "b", linestyle = line[count])
+    
+    count+=1
 
 progress_tqdm.close()
 
