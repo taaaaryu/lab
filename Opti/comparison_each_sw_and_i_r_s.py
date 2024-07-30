@@ -7,7 +7,7 @@ from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # パラメータ
-H = 25  # サーバリソース
+H = 15  # サーバリソース
 h_add= 0.5  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
@@ -43,17 +43,17 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
 
 
 # プロットを作成
-fig, ax = plt.subplots(figsize=(12, 8))
+fig, ax = plt.subplots(2,1,figsize=(12, 8))
 
 software_result = []
-placement_result = []
-redundancy_result = []
 
 for num_software in softwares:
     all_combinations = generate_service_combinations(services, num_software)
     all_redundancies = generate_redundancy_combinations(num_software, H, h_add)
     progress_tqdm = tqdm(total = len(all_combinations)+len(all_redundancies), unit = "count")
     
+    placement_result = []
+    redundancy_result = []
 
     # サービス実装形態によるCDFの計算
     p_results = []
@@ -107,45 +107,47 @@ for num_software in softwares:
         max_avails = [max_avail for _, _, max_avail in results]
         max_soft_redundancy = max(max_avails)
         redundancy_result.extend(max_avails)
-        software_result.append([num_software,max_soft_redundancy])
+        software_result.append(max_soft_redundancy)
 
+    if len(results)>1 and len(placement_result)>1:
+        # ラベルを追加
+        placement_sx = sorted(placement_result)
+        N = len(placement_sx)
+        placement_sy = [i / (N-1) for i in range(N)]
+
+        redundancy_sx = sorted(redundancy_result)
+        N = len(redundancy_sx)
+        redundancy_sy = [i / (N-1) for i in range(N)]
+        
+        # プロット
+        label1 = f"num_of_software = {num_software}"
+        label2 = f"num_of_software = {num_software}"
+
+        ax[0].plot(placement_sx, placement_sy, label=label1, color=cm.winter(num_software/n) )
+        ax[1].plot(redundancy_sx, redundancy_sy, label=label2, color = cm.autumn(num_software/n))
+    else:
+        print("no result")
 #ax.plot(software_sx, software_sy, label=label3,color = "b")
 
-
-label1 = f"Service_Implementation"
-label2 = f"Redundancy"
-label3 = f"Software"
-
-placement_sx = sorted(placement_result)
-N = len(placement_sx)
-placement_sy = [i / (N-1) for i in range(N)]
-
-redundancy_sx = sorted(redundancy_result)
-N = len(redundancy_sx)
-redundancy_sy = [i / (N-1) for i in range(N)]
-
-software_sx = sorted(software_result, key=lambda x: x[1])
+label3 = f"software"
+software_sx = sorted(software_result)
 N = len(software_sx)
 software_sy = [i / (N-1) for i in range(N)]
-
-print(software_sx)
-print(software_sy)
-
-ax.plot(placement_sx, placement_sy, label=label1, color="blue" )
-ax.plot(redundancy_sx, redundancy_sy, label=label2, color = "red")
-
-# ソフトウェアの結果をプロットする部分を修正
-ax.plot([x[1] for x in software_sx], software_sy, label=label3, color="black", marker='o')
-for x, y, num in zip([x[1] for x in software_sx], software_sy, [x[0] for x in software_sx]):
-    ax.text(x, y, str(num), fontsize=20, ha='left', va='bottom')
+ax[0].plot(software_sx, software_sy, label=label3, color = "black",linestyle="--")
 
 progress_tqdm.close()
 
-ax.set_xlabel('System Availability_Service&Software')
-ax.set_ylabel('CDF')
-ax.set_xlim(0.8, 1.0)
-ax.legend()
-ax.set_title(f"Service = {n}, resource = {H}, r_add = {h_add}")
+ax[0].set_xlabel('System Availability_Service&Software')
+ax[0].set_ylabel('CDF')
+ax[0].set_xlim(0.8, 1.0)
+ax[0].legend()
+ax[0].set_title(f"Service = {n}, resource = {H}, r_add = {h_add}")
+
+ax[1].set_xlabel('System Availability_Redundancy')
+ax[1].set_ylabel('CDF')
+ax[1].set_xlim(0.8, 1.0)
+ax[1].legend()
+ax[1].set_title(f"Service = {n}, resource = {H}, r_add = {h_add}")
 
 
 plt.xticks(rotation=45, ha='right')
