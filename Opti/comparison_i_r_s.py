@@ -78,9 +78,9 @@ for H in Resourse:
                 progress_tqdm.update(1)
             
             if len(p_results)!=0:
-                max_avails = [max_avail for _, _, max_avail in p_results]
-                max_soft_placement = max(max_avails)
-                placement_result.extend(max_avails)
+                max_unavails = [1-max_avail for _, _, max_avail in p_results]
+                max_soft_placement = min(max_unavails)
+                placement_result.extend(max_unavails)
 
 
             # 冗長化度合いによるCDFの計算
@@ -108,9 +108,9 @@ for H in Resourse:
                     optimized_results.append((redundancy, comb, max_avail))'''
             
             if len(results)!=0:
-                max_avails = [max_avail for _, _, max_avail in results]
-                max_soft_redundancy = max(max_avails)
-                redundancy_result.extend(max_avails)
+                max_unavails = [1-max_avail for _, _, max_avail in results]
+                max_soft_redundancy = min(max_unavails)
+                redundancy_result.extend(max_unavails)
                 software_result.append([num_software,max_soft_redundancy])
 
         #ax.plot(software_sx, software_sy, label=label3,color = "b")
@@ -121,14 +121,17 @@ for H in Resourse:
         label3 = f"Software"
 
         placement_sx = sorted(placement_result)
+        placement_sx.reverse()
         N = len(placement_sx)
         placement_sy = [i / (N-1) for i in range(N)]
 
         redundancy_sx = sorted(redundancy_result)
+        redundancy_sx.reverse()
         N = len(redundancy_sx)
         redundancy_sy = [i / (N-1) for i in range(N)]
 
         software_sx = sorted(software_result, key=lambda x: x[1])
+        software_sx.reverse()
         N = len(software_sx)
         software_sy = [i / (N-1) for i in range(N)]
 
@@ -143,11 +146,12 @@ for H in Resourse:
 
         progress_tqdm.close()
 
-        ax.set_xlabel('System Availability_Service&Software')
+        ax.set_xlabel('System Unavailability')
         ax.set_ylabel('CDF')
-        ax.set_xlim(0.8, 1.0)
+        ax.set_xscale('log')
+        #ax.set_xlim(0, 0.3)
         ax.legend()
-        ax.set_title(f"Service = {n}, resource = {H}, r_add = {h_add}")
+        ax.set_title(f"Service = {n}, Resource = {H}, r_add = {h_add}")
 
 
         plt.xticks(rotation=45, ha='right')

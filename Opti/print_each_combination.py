@@ -82,10 +82,12 @@ for H in Resourse:
                 ok_software.append(num_software)
                 all_combinations_result.append(len(max_avails))
                 
-        plt.plot(ok_software, all_combinations_result, label=f"H={H}, h_add={h_add}")
+        plt.plot(ok_software, all_combinations_result, label=f"Resourse={H}, r_add={h_add}")
 
 
 plt.title("number of combinations in service inplement" )
 plt.xlabel("number of service")
 plt.ylabel("number of combinations")
+
+plt.legend()
 plt.show()
