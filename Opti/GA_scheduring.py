@@ -169,8 +169,10 @@ def mutation(Chromosome, individual_mutation, genom_mutation):
                 ga_list = []
                 # 個体の遺伝子情報一つ一つに対して突然変異が起こる
                 if genom_mutation > (random.randint(0, 100) / Decimal(100)):
-                    for j in range(len(i_)):
-                        ga_list.append(float(random.randint(0.0, 1.0)))
+                    m_idx1 = random.randint(0,2)
+                    m_idx2 = random.randint(0,2)
+                    i_[m_idx1], i_[m_idx2] = i_[m_idx2], i_[m_idx1]
+                    ga_list.append(i_)
                     genom_list.append(ga_list)
                 else:
                     genom_list.append(i_)
