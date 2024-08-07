@@ -92,16 +92,16 @@ def constraints(Chromosome):
     
     # リソースを超えないようにする
     if np.dot(genom_raw_sum, SW_RESOURCES) > RESOURCE:
-        penalty += 100.0
+        penalty += 1.0
     # 各サーバに１つ以下のソフトウェアがホストされる制約(0はホストされない)
     for i in range(genom_arr.shape[0]):
         server = genom_arr[i]
         if sum(server) > MAX_PLACE:
-            penalty += 50.0 * abs(sum(server) - MAX_PLACE)
+            penalty += 0.5 * abs(sum(server) - MAX_PLACE)
     # 各ソフトウェアの冗長化数が最大で4となる
     for j in range(SOFTWARE):
         if genom_raw_sum[j] > MAX_REDUNDANCY:
-            penalty += 30.0 * abs(genom_raw_sum[j] - MAX_REDUNDANCY)
+            penalty += 0.3 * abs(genom_raw_sum[j] - MAX_REDUNDANCY)
 
     return penalty
 
@@ -142,7 +142,6 @@ def tournament_select(Chromosome, choice_num):
     """
     # 適応度を配列化
     fitness_arr = [float(genom.evaluation) for genom in Chromosome]
-    print(max(fitness_arr))
     next_gene_arr = []
     for i in range(choice_num):
         [idx_chosen1, idx_chosen2] = np.random.randint(MAX_GENOM_LIST, size=2)
@@ -188,7 +187,6 @@ def uniform_crossover(Chromosome_one, Chromosome_second):
     genom_list = []
     # 遺伝子を取り出す
     one = Chromosome_one.getGenom()
-    print(one)
     second = Chromosome_second.getGenom()
     # 交叉(サーバを入れ替える)
     for i in range(SERVER):
@@ -273,7 +271,7 @@ GENOM_LENGTH = SERVER*SOFTWARE
 # 遺伝子集団の大きさ
 MAX_GENOM_LIST = 300
 # 遺伝子選択数
-SELECT_GENOM = 50
+SELECT_GENOM = 60
 #交叉の確率
 #CROSSOVER_PRO = 0.5
 # 個体突然変異確率
@@ -291,7 +289,6 @@ LOCAL_OPTI = 3
 #それぞれのソフトウェアの可用性とリソースを計算
 SW_AVAILS = calc_software_av(SERVICE_COMBINATION,SERVICE_AVAILS)
 SW_RESOURCES = calc_software_resource(SERVICE_COMBINATION, R_ADD)
-print(SW_RESOURCES)
 
 local_opti = []
 Graph_Count = []
@@ -345,6 +342,7 @@ for count_ in range(1, MAX_GENERATION + 1):
             INDIVIDUAL_MUTATION += 0.01
         if GENOM_MUTATION < 0.1:
             GENOM_MUTATION += 0.01 
+            SELECT_GENOM -= 5
     else:
         # 現行世代と次世代を入れ替える
         current_generation_individual_group = next_generation_individual_group
