@@ -97,11 +97,11 @@ def constraints(Chromosome):
     for i in range(genom_arr.shape[0]):
         server = genom_arr[i]
         if sum(server) > MAX_PLACE:
-            penalty += 1 * abs(sum(server) - MAX_PLACE)
+            penalty += 0.5 * abs(sum(server) - MAX_PLACE)
     # 各ソフトウェアの冗長化数が最大で4となる
     for j in range(SOFTWARE):
-        if genom_raw_sum[j] > MAX_REDUNDANCY or genom_raw_sum[j] == 0:
-            penalty += 1 * abs(genom_raw_sum[j] - MAX_REDUNDANCY)
+        if genom_raw_sum[j] > MAX_REDUNDANCY:
+            penalty += 0.3 * abs(genom_raw_sum[j] - MAX_REDUNDANCY)
 
     return penalty
 
@@ -128,9 +128,8 @@ def roulette_select(Chromosome, choice_num):
     """
     # 適応度を配列化
     fitness_arr = np.array([float(genom.evaluation) for genom in Chromosome])
-    min_fitness = min(fitness_arr)
-    fitness_arr_norm = [i + min_fitness for i in fitness_arr]
-    idx = np.random.choice(np.arange(len(Chromosome)), size=choice_num, p=fitness_arr_norm/sum(fitness_arr_norm))
+    
+    idx = np.random.choice(np.arange(len(Chromosome)), size=choice_num, p=fitness_arr/sum(fitness_arr))
     result = [Chromosome[i] for i in idx]
     return result
 
@@ -244,19 +243,17 @@ def next_generation_gene_create(Chromosome, Chromosome_elite, Chromosome_progeny
     next_generation_geno.extend(Chromosome_progeny)
     return next_generation_geno
 
-
 # サーバ数
-SERVER = 10
+SERVER = 20
 # リソース
-RESOURCE = 20
+RESOURCE = 40
 #1つのサーバにホストされるSW数
 MAX_PLACE=1
 #最大の冗長化数
 MAX_REDUNDANCY = 4
 
-
 #サービスの分割
-SERVICE_COMBINATION = [2,1,2,2,3]
+SERVICE_COMBINATION = [2,1,2,2,3,2,4,2,1,1]
 #サービスの可用性
 SERVICE_AVAILS = [0.99]*sum(SERVICE_COMBINATION)
 # ソフトウェア数
@@ -266,103 +263,108 @@ SERVER_AVAIL = 0.99
 #ソフトウェアに複数のサービスが内包される際のコスト
 R_ADD = 1
 
-
 # 遺伝子情報の長さ
 GENOM_LENGTH = SERVER*SOFTWARE
-# 遺伝子集団の大きさ
-MAX_GENOM_LIST = 300
-# 遺伝子選択数
-SELECT_GENOM = 60
 #交叉の確率
-#CROSSOVER_PRO = 0.5
+CROSSOVER_PRO = 0.5
 # 個体突然変異確率
 INDIVIDUAL_MUTATION = 0.05
 # 遺伝子突然変異確率
 GENOM_MUTATION = 0.05
-# 繰り返す世代数
-MAX_GENERATION = 50
 # 繰り返しをやめる評価値の閾値
 THRESSHOLD = 0.99999
 #局所最適化対策、何回同じ解が続いたらリセットするか
 LOCAL_OPTI = 3
 
-
-#それぞれのソフトウェアの可用性とリソースを計算
 SW_AVAILS = calc_software_av(SERVICE_COMBINATION,SERVICE_AVAILS)
 SW_RESOURCES = calc_software_resource(SERVICE_COMBINATION, R_ADD)
 
-local_opti = []
-Graph_Count = []
-Graph_Result = []
-Max_Redundancy = []
+def genetic_algorithm(MAX_GENOM_LIST, MAX_GENERATION):
+    #それぞれのソフトウェアの可用性とリソースを計算
 
-# 一番最初の現行世代個体集団を生成
-current_generation_individual_group = []
-for i in range(MAX_GENOM_LIST):
-    current_generation_individual_group.append(create_Chromosome(GENOM_LENGTH))
-#print(current_generation_individual_group)
+    local_opti = []
+    Graph_Count = []
+    Graph_Result = []
+    Max_Redundancy = []
 
-for count_ in range(1, MAX_GENERATION + 1):
-    # 現行世代個体集団の遺伝子を評価し、ChromosomeClassに代入
+    # 一番最初の現行世代個体集団を生成
+    current_generation_individual_group = []
     for i in range(MAX_GENOM_LIST):
-        evaluation_result = evaluation(current_generation_individual_group[i])
-        current_generation_individual_group[i].setEvaluation(evaluation_result)
-    # エリート個体を選択
-    choice_genes = elite_select(current_generation_individual_group,SELECT_GENOM)
-    # エリート遺伝子を交叉させ、リストに格納
-    progeny_gene = []
-    for i in range(0, SELECT_GENOM):
-        progeny_gene.extend(crossover(choice_genes[i - 1], choice_genes[i]))
-    # 次世代個体集団を現行世代、エリート集団、子孫集団から作成
-    next_generation_individual_group = next_generation_gene_create(current_generation_individual_group,
-                                                                   choice_genes, progeny_gene)
-    # 次世代個体集団全ての個体に突然変異を施す
-    next_generation_individual_group = mutation(next_generation_individual_group,INDIVIDUAL_MUTATION,GENOM_MUTATION)
+        current_generation_individual_group.append(create_Chromosome(GENOM_LENGTH))
 
-    # 1世代の進化的計算終了
+    for count_ in range(1, MAX_GENERATION + 1):
+        # 現行世代個体集団の遺伝子を評価し、ChromosomeClassに代入
+        for i in range(MAX_GENOM_LIST):
+            evaluation_result = evaluation(current_generation_individual_group[i])
+            current_generation_individual_group[i].setEvaluation(evaluation_result)
+        # エリート個体を選択
+        choice_genes = elite_select(current_generation_individual_group,MAX_GENERATION)
+        # エリート遺伝子を交叉させ、リストに格納
+        progeny_gene = []
+        for i in range(0, MAX_GENERATION):
+            progeny_gene.extend(crossover(choice_genes[i - 1], choice_genes[i]))
+        # 次世代個体集団を現行世代、エリート集団、子孫集団から作成
+        next_generation_individual_group = next_generation_gene_create(current_generation_individual_group,
+                                                                       choice_genes, progeny_gene)
+        # 次世代個体集団全ての個体に突然変異を施す
+        next_generation_individual_group = mutation(next_generation_individual_group,INDIVIDUAL_MUTATION,GENOM_MUTATION)
 
-    # 各個体適用度を配列化
-    fits = [i.getEvaluation() for i in current_generation_individual_group]
+        # 1世代の進化的計算終了
+
+        # 各個体適用度を配列化
+        fits = [i.getEvaluation() for i in current_generation_individual_group]
+
+        # 進化結果を評価
+        max_ = max(fits)
+        Redundancy_result = np.sum(choice_genes[0].getGenom(),axis=0)
+        # 現行世代の進化結果(最低の非可用性)を記録
+        Graph_Count.append(count_)
+        Max_Redundancy.append(Redundancy_result)
+        Graph_Result.append(max_)
+
+        #局所最適化への対策として、ある回数解が同じになったら、リセット
+        Local_Result = Graph_Result[-1*LOCAL_OPTI:]
+        if all(elem == Local_Result[-1] for elem in Local_Result):
+            current_generation_individual_group = []
+            for i in range(MAX_GENOM_LIST):
+                current_generation_individual_group.append(create_Chromosome(GENOM_LENGTH))
+            #リセットの際、突然変異の起こる確率を上げる
+            if INDIVIDUAL_MUTATION < 0.1:
+                INDIVIDUAL_MUTATION += 0.01
+            if GENOM_MUTATION < 0.1:
+                GENOM_MUTATION += 0.01 
+                SELECT_GENOM -= 5
+        else:
+            # 現行世代と次世代を入れ替える
+            current_generation_individual_group = next_generation_individual_group
+        # 適応度が閾値に達したら終了
+        if THRESSHOLD <= max_:
+            print('optimal')
+            break
 
     # 進化結果を評価
     max_ = max(fits)
-    Redundancy_result = np.sum(choice_genes[0].getGenom(),axis=0)
-    # 現行世代の進化結果(最低の非可用性)を記録
-    Graph_Count.append(count_)
-    Max_Redundancy.append(Redundancy_result)
-    Graph_Result.append(1 - max_)
-    
-    #局所最適化への対策として、ある回数解が同じになったら、リセット
-    Local_Result = Graph_Result[-1*LOCAL_OPTI:]
-    if all(elem == Local_Result[-1] for elem in Local_Result):
-        current_generation_individual_group = []
-        for i in range(MAX_GENOM_LIST):
-            current_generation_individual_group.append(create_Chromosome(GENOM_LENGTH))
-        #リセットの際、突然変異の起こる確率を上げる
-        if INDIVIDUAL_MUTATION < 0.1:
-            INDIVIDUAL_MUTATION += 0.01
-        if GENOM_MUTATION < 0.1:
-            GENOM_MUTATION += 0.01 
-            SELECT_GENOM -= 5
-    else:
-        # 現行世代と次世代を入れ替える
-        current_generation_individual_group = next_generation_individual_group
-    # 適応度が閾値に達したら終了
-    if THRESSHOLD <= max_:
-        print('optimal')
-        break
-# 最最良個体結果出力
-#print(choice_genes[0].getGenom())
-Unavail_min = min(Graph_Result)
-result_idx = Graph_Result.index(Unavail_min)
-print(f'最良個体情報:{Max_Redundancy[result_idx]}')
-print(f'最大の可用性{1-Unavail_min}')
-print(f'必要なリソース:{np.dot(Max_Redundancy[result_idx],SW_RESOURCES)}')
+    return max_
 
-plt.subplots()
-plt.plot(Graph_Count, Graph_Result)
-plt.xlabel("generation")
-plt.ylabel("system_Unavailability")
-plt.yscale("log")
+# パラメータの範囲
+MAX_GENOM_LIST_range = range(200, 310, 10)
+MAX_GENERATION_range = range(20, 110, 10)
+
+X, Y, Z = [], [], []
+
+for MAX_GENOM_LIST in MAX_GENOM_LIST_range:
+    for MAX_GENERATION in MAX_GENERATION_range:
+        max_ = genetic_algorithm(MAX_GENOM_LIST, MAX_GENERATION)
+        X.append(MAX_GENOM_LIST)
+        Y.append(MAX_GENERATION)
+        Z.append(max_)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(X, Y, Z, c='r', marker='o')
+
+ax.set_xlabel('MAX_GENOM_LIST')
+ax.set_ylabel('MAX_GENERATION')
+ax.set_zlabel('max_')
 
 plt.show()

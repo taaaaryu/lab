@@ -7,8 +7,8 @@ from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # パラメータ
-Resourse = [15,20,25]  # サーバリソース
-h_adds = [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+Resourse = [20]  # サーバリソース
+h_adds = [1]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
@@ -124,11 +124,13 @@ for H in Resourse:
         placement_sx.reverse()
         N = len(placement_sx)
         placement_sy = [i / (N-1) for i in range(N)]
+        print(max(placement_result))
 
         redundancy_sx = sorted(redundancy_result)
         redundancy_sx.reverse()
         N = len(redundancy_sx)
         redundancy_sy = [i / (N-1) for i in range(N)]
+        print(max(redundancy_result))
 
         software_sx = sorted(software_result, key=lambda x: x[1])
         software_sx.reverse()
