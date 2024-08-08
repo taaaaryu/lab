@@ -7,12 +7,12 @@ from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # パラメータ
-H = 40  # サーバリソース
+H = 20  # サーバリソース
 h_add= 1  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-n = 20  # サービス数
+n = 10  # サービス数
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
@@ -55,22 +55,11 @@ for num_software in softwares:
     placement_result = []
     redundancy_result = []
 
-    # サービス実装形態によるCDFの計算
+    # サービス実装形態によるCDFの計算  
     p_results = []
     for comb in all_combinations:
-        max_system_avail = -1
-        best_redundancy = None
-        for redundancy in all_redundancies:
-            total_servers = sum(redundancy[i] * ((h_add*(len(comb[i])-1))+1) for i in range(len(comb)))
-            if total_servers <= H:
-                if alloc <= total_servers:
-                    software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-                    system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
-                    if system_avail > max_system_avail:
-                        max_system_avail = system_avail
-                        best_redundancy = redundancy
-        if best_redundancy:
-            p_results.append((comb, best_redundancy, max_system_avail))
+        sw_avail = [calc_]
+        
         progress_tqdm.update(1)
     
     if len(p_results)!=0:
