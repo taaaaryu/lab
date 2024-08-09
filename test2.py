@@ -1,20 +1,23 @@
 import time
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.cm as cm
 from tqdm import tqdm
 import numpy as np
 from itertools import combinations, chain, product
-import matplotlib.cm as cm
+from matplotlib.colors import to_rgba
+import statistics
+from scipy import stats
 
 # パラメータ
 n = 10  # サービス数
-H = n * 2  # サーバリソース
-h_add_values = [0.5, 0.75, 1.0, 1.25, 1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+H = n*2  # サーバリソース
+h_adds = [1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-softwares = [i for i in range(1, n + 1)]
+
+softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
-service_avail = [0.95] * n
+service_avail = [0.99]*n
 server_avail = 0.99
 alloc = H * 0.95  # サーバリソースの下限
 max_redundancy = 5
@@ -40,20 +43,38 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
     all_redundancies = [redundancy for redundancy in product(range(1, max_redundancy), repeat=num_software)]
     return all_redundancies
 
-# メインの処理
+def calc_sw_resource(comb):
+    sw = [(h_add * (len(i) - 1)) + 1 for i in comb]
+    return sw
+
+# 相関分析の関数
+def analyze_correlation(std_dev, availability):
+    correlation, p_value = stats.pearsonr(std_dev, availability)
+    return correlation, p_value
+
+# 散布図をプロットする関数
+def plot_scatter(std_dev, availability, title):
+    plt.figure(figsize=(10, 6))
+    plt.scatter(std_dev, availability, alpha=0.5)
+    plt.xlabel('Standard Deviation of SW Resource')
+    plt.ylabel('Availability')
+    plt.title(title)
+    plt.grid(True)
+    
+    plt.show()
+
+software_availabilities = []
+combination_lengths = []
 results = []
-counts = []
+fig, ax = plt.subplots(figsize=(12, 8))
+i=0
 
-colors = cm.winter(np.linspace(0, 1, len(h_add_values)))
-
-for h_add, color in zip(h_add_values, colors):
-    software_availabilities = []
-    combination_lengths = []
+for h_add in h_adds:
     for num_software in softwares:
         all_combinations = generate_service_combinations(services, num_software)
         all_redundancies = generate_redundancy_combinations(num_software, H, h_add)
         progress_tqdm = tqdm(total=len(all_combinations) + len(all_redundancies), unit="count")
-
+        
         redundancy_result = []
 
         # 冗長化度合いによるCDFの計算
@@ -70,33 +91,75 @@ for h_add, color in zip(h_add_values, colors):
                             max_system_avail = system_avail
                             best_combination = comb
             if best_combination:
-                results.append((redundancy, best_combination, max_system_avail, h_add))
-                combination_lengths.append((max_system_avail, len(best_combination), h_add))
+                results.append((redundancy, best_combination, max_system_avail))
+                combination_lengths.append((max_system_avail, len(best_combination)))
             progress_tqdm.update(1)
 
-        progress_tqdm.close()
+    progress_tqdm.close()
+
     # 上位x%のソフトウェア数を計算
-    combination_lengths.sort(reverse=True, key=lambda x: x[0])
-    top_x_count = int(top_x_percent * len(combination_lengths))
+    top_x_count = int(top_x_percent*len(combination_lengths))
 
     # 上位x%のシステム可用性に対応するbest_combinationの長さの分布
-    top_combination_lengths = [length for avail, length, h_add in combination_lengths[:top_x_count]]
-    count_software = [top_combination_lengths.count(i) for i in range(1, n + 1)]
-    counts.append((h_add, count_software))
+    results.sort(key=lambda x: x[2], reverse=True)
+    combination_lengths.sort(key=lambda x: x[0], reverse=True)
+    std_sw_resource = []
+    std_sw_resource_all = []
+
+    # 全ての組み合わせの標準偏差
+    comb_all = [comb for red, comb, avail in results]
+    each_sw_resource_all = [calc_sw_resource(k) for k in comb_all]
+    for j in each_sw_resource_all:
+        if len(j)==1:
+            continue
+        std_sw_resource_all.append(statistics.stdev(j))
+    
+    top_combination_lengths = [length for avail, length in combination_lengths[:top_x_count]]
+    
+    # TOP1%の組み合わせのSWリソースの標準偏差
+    comb = [comb for red, comb, avail in results[:top_x_count]]
+    each_sw_resource = [calc_sw_resource(k) for k in comb]
+    for j in each_sw_resource:
+        if len(j)==1:
+            continue
+        std_sw_resource.append(statistics.stdev(j))
+    top_combination_lengths = [length for avail, length in combination_lengths[:top_x_count]]
+
+    count_software = [top_combination_lengths.count(i) for i in range(1,num_software+1)]
+    
 
 
-# ソフトウェア数、h_add、カウントを記録
-software_count = np.arange(1, n + 1)
-fig = plt.figure(figsize=(12, 8))
-ax = fig.add_subplot(111, projection='3d')
+# 上位1％の解の標準偏差と可用性のリスト
+# 上位1％の解の標準偏差と可用性のリスト
+top_avail = [avail for _, comb, avail in results[:top_x_count]]
+top_std_sw_resource = std_sw_resource[:top_x_count]
 
-for (h_add, count_software), color in zip(counts, colors):
-    ax.plot(software_count, [h_add] * n, count_software, marker='o', label=h_add,color=color, linewidth=1)
 
-ax.set_xlabel('Number of Software')
-ax.set_ylabel('r_add')
-ax.set_zlabel('Counts')
-ax.set_title(f'Top {top_x_percent * 100}% Availability')
-ax.legend()
+all_std_sw_resource = std_sw_resource_all
+all_avail = [result[2] for result in results]
 
-plt.show()
+# 相関分析の前に、長さを確認し調整する
+min_length = min(len(top_std_sw_resource), len(top_avail))
+top_std_sw_resource = top_std_sw_resource[:min_length]
+top_avail = top_avail[:min_length]
+
+print(f"Length of top_std_sw_resource: {len(top_std_sw_resource)}")
+print(f"Length of top_avail: {len(top_avail)}")
+
+# 相関分析を実行
+top_correlation, top_p_value = analyze_correlation(top_std_sw_resource, top_avail)
+print(f"Top {top_x_percent*100}% Correlation: {top_correlation:.4f}, p-value: {top_p_value:.4f}")
+plot_scatter(top_std_sw_resource, top_avail, f"Top {top_x_percent*100}% - Standard Deviation vs Availability")
+
+# 全データに対しても同様の処理を行う
+min_length_all = min(len(all_std_sw_resource), len(all_avail))
+all_std_sw_resource = all_std_sw_resource[:min_length_all]
+all_avail = all_avail[:min_length_all]
+
+print(f"Length of all_std_sw_resource: {len(all_std_sw_resource)}")
+print(f"Length of all_avail: {len(all_avail)}")
+
+# 全データの相関分析を実行
+all_correlation, all_p_value = analyze_correlation(all_std_sw_resource, all_avail)
+print(f"Overall Correlation: {all_correlation:.4f}, p-value: {all_p_value:.4f}")
+plot_scatter(all_std_sw_resource, all_avail, "All Data - Standard Deviation vs Availability")
