@@ -7,12 +7,12 @@ from itertools import combinations, chain, product
 from matplotlib.colors import to_rgba
 
 # パラメータ
-H = 40  # サーバリソース
+H = 20  # サーバリソース
 h_add= 1  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-n = 20  # サービス数
+n = 10  # サービス数
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
@@ -112,10 +112,10 @@ for num_software in softwares:
     if len(results)>1 and len(placement_result)>1:
         # ラベルを追加
         placement_sx = sorted(placement_result)
-        N = len(placement_sx)
         placement_sy = [i / (N-1) for i in range(N)]
 
         redundancy_sx = sorted(redundancy_result)
+        print(redundancy_sx[:5])
         N = len(redundancy_sx)
         redundancy_sy = [i / (N-1) for i in range(N)]
         """software_sx = sorted(software_result)

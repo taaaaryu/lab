@@ -122,6 +122,7 @@ for H in Resourse:
 
         placement_sx = sorted(placement_result)
         placement_sx.reverse()
+        print(1-min(placement_sx))
         N = len(placement_sx)
         placement_sy = [i / (N-1) for i in range(N)]
         print(max(placement_result))
