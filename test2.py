@@ -1,165 +1,119 @@
-import time
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from tqdm import tqdm
 import numpy as np
-from itertools import combinations, chain, product
-from matplotlib.colors import to_rgba
-import statistics
-from scipy import stats
+import random
+import matplotlib.pyplot as plt
 
-# パラメータ
-n = 10  # サービス数
-H = n*2  # サーバリソース
-h_adds = [1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+def calc_software_av(services_in_sw, service_avail, server_avail):
+    # 各SWの可用性を計算
+    non_sero_idx = np.nonzero(services_in_sw)
+    sw_avail = 1
+    non_sero_idx = [item.tolist() for item in non_sero_idx]
 
-# 定数
+    for k in non_sero_idx[0]:
+        sw_avail *= service_avail[k] * services_in_sw[k]
+    return sw_avail * server_avail
 
-softwares = [i for i in range(1, n+1)]
-services = [i for i in range(1, n + 1)]
-service_avail = [0.99]*n
-server_avail = 0.99
-alloc = H * 0.95  # サーバリソースの下限
-max_redundancy = 5
-top_x_percent = 0.01  # 上位x%の設定
+def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
+    initial_redundancy = [1] * software_count  # 冗長化度合いを1で初期化
+    redundancy_cost_efficiency = []
+    software_availability = [calc_software_av(matrix[j], service_avail, server_avail) for j in range(software_count)]
+    system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
+    total_servers = sum(initial_redundancy[j] * ((r_add * (np.sum(matrix[:, j]) - 1)) + 1) for j in range(software_count))
 
-# ソフトウェアの可用性を計算する関数
-def calc_software_av(services_group, service_avail):
-    indices = [services.index(s) for s in services_group]
-    return np.prod([service_avail[i] for i in indices])
+    for i in range(software_count):
+        initial_redundancy[i] = 2  # 一つのソフトウェアの冗長化度合いを2に変更
+        total_servers_red = sum(initial_redundancy[j] * ((r_add * (np.sum(matrix[:, j]) - 1)) + 1) for j in range(software_count))
 
-# サービスの組み合わせを生成する関数
-def generate_service_combinations(services, num_software):
-    all_combinations = []
-    n = len(services)
-    for indices in combinations(range(n - 1), num_software - 1):
-        split_indices = list(chain([-1], indices, [n - 1]))
-        combination = [services[split_indices[i] + 1: split_indices[i + 1] + 1] for i in range(len(split_indices) - 1)]
-        all_combinations.append(combination)
-    return all_combinations
+        if total_servers_red <= H:
+            # 冗長化後のシステム全体の可用性を計算
+            system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
 
-# 冗長化の組み合わせを生成する関数
-def generate_redundancy_combinations(num_software, max_servers, h_add):
-    all_redundancies = [redundancy for redundancy in product(range(1, max_redundancy), repeat=num_software)]
-    return all_redundancies
+            # 冗長化コスト効率を計算し、リストに追加
+            redundancy_cost_efficiency.append((system_avail_red - system_avail) / (total_servers_red - total_servers))
+        else:
+            redundancy_cost_efficiency.append(0)
 
-def calc_sw_resource(comb):
-    sw = [(h_add * (len(i) - 1)) + 1 for i in comb]
-    return sw
+        initial_redundancy[i] = 1  # 再度冗長化度合いを1にリセット
 
-# 相関分析の関数
-def analyze_correlation(std_dev, availability):
-    correlation, p_value = stats.pearsonr(std_dev, availability)
-    return correlation, p_value
+    avg_efficiency = np.mean(redundancy_cost_efficiency)
 
-# 散布図をプロットする関数
-def plot_scatter(std_dev, availability, title):
-    plt.figure(figsize=(10, 6))
-    plt.scatter(std_dev, availability, alpha=0.5)
-    plt.xlabel('Standard Deviation of SW Resource')
-    plt.ylabel('Availability')
-    plt.title(title)
-    plt.grid(True)
-    
+    return avg_efficiency
+
+def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H):
+    best_matrix = matrix.copy()
+    best_RUE = calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H)
+
+    # 1つのソフトウェアの冗長化度合いを変更するか、ソフトウェア数を変更して探索
+    for i in range(software_count):
+        for j in range(software_count):
+            new_matrix = matrix.copy()
+            new_matrix[:, j] = np.roll(new_matrix[:, j], 1)  # 一つのサービス実装を変更
+            new_RUE = calc_RUE(new_matrix, software_count, service_avail, server_avail, r_add, H)
+            if new_RUE > best_RUE:
+                best_RUE = new_RUE
+                best_matrix = new_matrix
+
+    return best_matrix, software_count, best_RUE
+
+def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts=10):
+    best_global_matrix = None
+    best_global_RUE = -np.inf
+    best_global_software_count = 0
+    service = [i for i in range(1, num_service)]
+
+    # 各スタートごとのソフトウェア数を保存するリスト
+    software_counts_per_start = []
+    software_counts_after_greedy = []
+
+    for _ in range(num_starts):
+        # 初期化：r_addに応じてソフトウェア数を少なくする
+        software_count = np.random.randint(1, num_service)
+        software_counts_per_start.append(software_count)  # 各スタートのソフトウェア数を記録
+        matrix = np.zeros((software_count, num_service), dtype=int)
+        if software_count == 1:
+            continue
+        else:
+            a = random.sample(service, software_count - 1)
+            a.append(num_service)
+            a.sort()
+            idx = 0
+            for i in range(software_count):
+                for k in range(idx, a[i]):
+                    matrix[i][k] = 1
+                    idx += 1
+        print(matrix)
+        # 貪欲法で探索を実行
+        best_matrix, best_software_count, best_RUE = greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
+
+        software_counts_after_greedy.append(best_software_count)  # 貪欲法後のソフトウェア数を記録
+
+        # グローバルな最良結果を更新
+        if best_RUE > best_global_RUE:
+            best_global_RUE = best_RUE
+            best_global_matrix = best_matrix
+            best_global_software_count = best_software_count
+
+    print("Software Counts per Start:", software_counts_per_start)
+    print("Software Counts after Greedy Search:", software_counts_after_greedy)
+
+    # ソフトウェア数の変化をプロット
+    plt.plot(range(num_starts), software_counts_per_start, marker='o', label='Initial Software Count')
+    plt.plot(range(num_starts), software_counts_after_greedy, marker='x', label='Final Software Count after Greedy')
+    plt.xlabel('Start Number')
+    plt.ylabel('Software Count')
+    plt.title('Change in Software Count per Start')
+    plt.legend()
     plt.show()
 
-software_availabilities = []
-combination_lengths = []
-results = []
-fig, ax = plt.subplots(figsize=(12, 8))
-i=0
+    return best_global_matrix, best_global_software_count, best_global_RUE
 
-for h_add in h_adds:
-    for num_software in softwares:
-        all_combinations = generate_service_combinations(services, num_software)
-        all_redundancies = generate_redundancy_combinations(num_software, H, h_add)
-        progress_tqdm = tqdm(total=len(all_combinations) + len(all_redundancies), unit="count")
-        
-        redundancy_result = []
+# 使用例
+r_add = 0.5  # 例としてr_add値
+num_service = 10  # サービス数
+service_avail = [0.99] * num_service  # サービス可用性の例
+server_avail = 0.99  # サーバー可用性の例
+H = 20  # 最大サーバー制約の例
 
-        # 冗長化度合いによるCDFの計算
-        for redundancy in all_redundancies:
-            max_system_avail = -1
-            best_combination = None
-            for comb in all_combinations:
-                total_servers = sum(redundancy[i] * ((h_add * (len(comb[i]) - 1)) + 1) for i in range(len(comb)))
-                if total_servers <= H:
-                    if alloc <= total_servers:
-                        software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-                        system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
-                        if system_avail > max_system_avail:
-                            max_system_avail = system_avail
-                            best_combination = comb
-            if best_combination:
-                results.append((redundancy, best_combination, max_system_avail))
-                combination_lengths.append((max_system_avail, len(best_combination)))
-            progress_tqdm.update(1)
-
-    progress_tqdm.close()
-
-    # 上位x%のソフトウェア数を計算
-    top_x_count = int(top_x_percent*len(combination_lengths))
-
-    # 上位x%のシステム可用性に対応するbest_combinationの長さの分布
-    results.sort(key=lambda x: x[2], reverse=True)
-    combination_lengths.sort(key=lambda x: x[0], reverse=True)
-    std_sw_resource = []
-    std_sw_resource_all = []
-
-    # 全ての組み合わせの標準偏差
-    comb_all = [comb for red, comb, avail in results]
-    each_sw_resource_all = [calc_sw_resource(k) for k in comb_all]
-    for j in each_sw_resource_all:
-        if len(j)==1:
-            continue
-        std_sw_resource_all.append(statistics.stdev(j))
-    
-    top_combination_lengths = [length for avail, length in combination_lengths[:top_x_count]]
-    
-    # TOP1%の組み合わせのSWリソースの標準偏差
-    comb = [comb for red, comb, avail in results[:top_x_count]]
-    each_sw_resource = [calc_sw_resource(k) for k in comb]
-    for j in each_sw_resource:
-        if len(j)==1:
-            continue
-        std_sw_resource.append(statistics.stdev(j))
-    top_combination_lengths = [length for avail, length in combination_lengths[:top_x_count]]
-
-    count_software = [top_combination_lengths.count(i) for i in range(1,num_software+1)]
-    
-
-
-# 上位1％の解の標準偏差と可用性のリスト
-# 上位1％の解の標準偏差と可用性のリスト
-top_avail = [avail for _, comb, avail in results[:top_x_count]]
-top_std_sw_resource = std_sw_resource[:top_x_count]
-
-
-all_std_sw_resource = std_sw_resource_all
-all_avail = [result[2] for result in results]
-
-# 相関分析の前に、長さを確認し調整する
-min_length = min(len(top_std_sw_resource), len(top_avail))
-top_std_sw_resource = top_std_sw_resource[:min_length]
-top_avail = top_avail[:min_length]
-
-print(f"Length of top_std_sw_resource: {len(top_std_sw_resource)}")
-print(f"Length of top_avail: {len(top_avail)}")
-
-# 相関分析を実行
-top_correlation, top_p_value = analyze_correlation(top_std_sw_resource, top_avail)
-print(f"Top {top_x_percent*100}% Correlation: {top_correlation:.4f}, p-value: {top_p_value:.4f}")
-plot_scatter(top_std_sw_resource, top_avail, f"Top {top_x_percent*100}% - Standard Deviation vs Availability")
-
-# 全データに対しても同様の処理を行う
-min_length_all = min(len(all_std_sw_resource), len(all_avail))
-all_std_sw_resource = all_std_sw_resource[:min_length_all]
-all_avail = all_avail[:min_length_all]
-
-print(f"Length of all_std_sw_resource: {len(all_std_sw_resource)}")
-print(f"Length of all_avail: {len(all_avail)}")
-
-# 全データの相関分析を実行
-all_correlation, all_p_value = analyze_correlation(all_std_sw_resource, all_avail)
-print(f"Overall Correlation: {all_correlation:.4f}, p-value: {all_p_value:.4f}")
-plot_scatter(all_std_sw_resource, all_avail, "All Data - Standard Deviation vs Availability")
+best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, num_service)
+print(f"Best Matrix:\n{best_matrix}")
+print(f"Best Software Count: {best_software_count}")
+print(f"Best RUE: {best_RUE}")

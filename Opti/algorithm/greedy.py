@@ -1,110 +1,100 @@
 import numpy as np
 import random
 
-# Parameters
-n_services = 10  # Number of services
-max_software = n_services  # Max number of software
-POP = 20  # Number of top combinations to consider
+def calc_software_av(services_in_sw, service_avail,server_avail):
+    # 各SWの可用性を計算
+    non_sero_idx = np.nonzero(services_in_sw)
+    sw_avail=1
+    non_sero_idx= [item.tolist() for item in non_sero_idx]
 
-# Resource Utilization Efficiency (RUE) calculation
-def calc_RUE(matrix, software_count, r_add):
-    redundancy = [1] * software_count  # Start with all redundancy levels set to 1
-    # Increase redundancy level for one software to calculate the cost efficiency
+    for k in non_sero_idx[0]:
+        sw_avail *= service_avail[k]*services_in_sw[k]
+    return sw_avail*server_avail
+
+def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
+    initial_redundancy = [1] * software_count  # 冗長化度合いを1で初期化
+    redundancy_cost_efficiency = []
+    software_availability = [calc_software_av(matrix[j], service_avail, server_avail) for j in range(software_count)]
+    #print(software_availability)
+    system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
+    total_servers = sum(initial_redundancy[j] * ((r_add * (np.sum(matrix[:, j]) - 1)) + 1) for j in range(software_count))
+
     for i in range(software_count):
-        redundancy[i] += 1  
-        break  # Only one software's redundancy level is increased
+        initial_redundancy[i] = 2  # 一つのソフトウェアの冗長化度合いを2に変更
+        total_servers_red = sum(initial_redundancy[j] * ((r_add * (np.sum(matrix[:, j]) - 1)) + 1) for j in range(software_count))
+        
+        if total_servers_red <= H:
+            # 冗長化後のシステム全体の可用性を計算
+            system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
+            
+            # 冗長化コスト効率を計算し、リストに追加
+            redundancy_cost_efficiency.append((system_avail_red - system_avail) / (total_servers_red - total_servers))
+        else:
+            redundancy_cost_efficiency.append(0)
 
-    availability = 1.0
-    for j in range(n_services):
-        software_index = np.argmax(matrix[j])  # Find the software where service j is implemented
-        availability *= (1 - (1 - 0.99) ** redundancy[software_index])
+        initial_redundancy[i] = 1  # 再度冗長化度合いを1にリセット
 
-    RUE = availability / (software_count + r_add)
-    return RUE
+    avg_efficiency = np.mean(redundancy_cost_efficiency)
 
-# Initial random assignment biased by r_add
-def initialize_matrix(r_add):
-    software_count = max(1, int(max_software / (1 + r_add)))  # Adjust software count based on r_add
-    matrix = np.zeros((n_services, software_count))
+    return avg_efficiency
 
-    # Randomly assign services to software, ensuring services are contiguous
-    start_service = 0
-    for s in range(software_count):
-        end_service = min(start_service + random.randint(1, n_services // software_count), n_services)
-        matrix[start_service:end_service, s] = 1
-        start_service = end_service
+def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H):
+    best_matrix = matrix.copy()
+    best_RUE = calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H)
 
-    return matrix, software_count
+    # 1つのソフトウェアの冗長化度合いを変更するか、ソフトウェア数を変更して探索
+    for i in range(software_count):
+        for j in range(software_count):
+            new_matrix = matrix.copy()
+            new_matrix[:, j] = np.roll(new_matrix[:, j], 1)  # 一つのサービス実装を変更
+            new_RUE = calc_RUE(new_matrix, software_count, service_avail, server_avail, r_add, H)
+            if new_RUE > best_RUE:
+                best_RUE = new_RUE
+                best_matrix = new_matrix
 
-# Exploration by increasing software count
-def explore_increase_software(matrix, software_count):
-    if software_count >= max_software:
-        return None, None
+    return best_matrix, software_count, best_RUE
 
-    new_software_count = software_count + 1
-    new_matrix = np.zeros((n_services, new_software_count))
+def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts=10):
+    best_global_matrix = None
+    best_global_RUE = -np.inf
+    best_global_software_count = 0
+    service = [i for i in range(1,num_service)]
 
-    # Copy the existing assignment
-    new_matrix[:, :software_count] = matrix
+    for _ in range(num_starts):
+        # 初期化：r_addに応じてソフトウェア数を少なくする
+        software_count = np.random.randint(1, num_service)##
+        matrix = np.zeros((software_count, num_service), dtype=int)
+        if software_count == 1:
+            continue
+        else:
+            a = random.sample(service,software_count-1)
+            a.append(num_service)
+            a.sort()
+            idx = 0
+            for i in range(software_count):
+                for k in range(idx,a[i]):
+                    matrix[i][k]=1
+                    idx+=1
+        print(matrix)
+        # 貪欲法で探索を実行
+        best_matrix, best_software_count, best_RUE = greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
+        
+        # グローバルな最良結果を更新
+        if best_RUE > best_global_RUE:
+            best_global_RUE = best_RUE
+            best_global_matrix = best_matrix
+            best_global_software_count = best_software_count
 
-    # Randomly assign remaining services to the new software
-    remaining_services = np.where(np.sum(matrix, axis=1) == 0)[0]
-    if len(remaining_services) > 0:
-        start_service = random.choice(remaining_services)
-        new_matrix[start_service:, new_software_count - 1] = 1
+    return best_global_matrix, best_global_software_count, best_global_RUE
 
-    return new_matrix, new_software_count
+# 使用例
+r_add = 0.5  # 例としてr_add値
+num_service = 10 #サービス数
+service_avail = [0.99]*num_service  # サービス可用性の例
+server_avail = 0.99  # サーバー可用性の例
+H = 20  # 最大サーバー制約の例
 
-# Exploration by changing service implementation
-def explore_change_service(matrix, software_count):
-    new_matrix = np.copy(matrix)
-    service_to_change = random.randint(0, n_services - 1)
-
-    current_software = np.argmax(matrix[service_to_change])
-    possible_software = list(range(software_count))
-    possible_software.remove(current_software)
-    new_software = random.choice(possible_software)
-
-    new_matrix[service_to_change, current_software] = 0
-    new_matrix[service_to_change, new_software] = 1
-
-    return new_matrix, software_count
-
-# Multi-start greedy search
-def multi_start_greedy(r_add, starts=10):
-    best_RUE = -float('inf')
-    best_matrix = None
-    best_software_count = None
-
-    for _ in range(starts):
-        matrix, software_count = initialize_matrix(r_add)
-        current_RUE = calc_RUE(matrix, software_count, r_add)
-
-        while True:
-            # Explore by increasing software count
-            new_matrix, new_software_count = explore_increase_software(matrix, software_count)
-            if new_matrix is not None:
-                new_RUE = calc_RUE(new_matrix, new_software_count, r_add)
-                if new_RUE > current_RUE:
-                    matrix, software_count, current_RUE = new_matrix, new_software_count, new_RUE
-                    continue
-
-            # Explore by changing service implementation
-            new_matrix, new_software_count = explore_change_service(matrix, software_count)
-            new_RUE = calc_RUE(new_matrix, new_software_count, r_add)
-            if new_RUE > current_RUE:
-                matrix, software_count, current_RUE = new_matrix, new_software_count, new_RUE
-            else:
-                break  # Stop when no improvement is found
-
-        if current_RUE > best_RUE:
-            best_RUE, best_matrix, best_software_count = current_RUE, matrix, software_count
-
-    return best_matrix, best_software_count, best_RUE
-
-# Example usage
-r_add = 0.5  # Example value for r_add
-best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add)
+best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, num_service)
 print(f"Best Matrix:\n{best_matrix}")
 print(f"Best Software Count: {best_software_count}")
-print(f"Best RUE: {best_RUE}")
+print(f"Best RCE: {best_RUE}")
