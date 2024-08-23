@@ -15,14 +15,13 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
     initial_redundancy = [1] * software_count  # 冗長化度合いを1で初期化
     redundancy_cost_efficiency = []
     software_availability = [calc_software_av(matrix[j], service_avail, server_avail) for j in range(software_count)]
-    #print(software_availability)
     system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
-    total_servers = sum(initial_redundancy[j] * ((r_add * (np.sum(matrix[:, j]) - 1)) + 1) for j in range(software_count))
+    total_servers = sum(initial_redundancy[j] * ((r_add * (np.sum(matrix[j]) - 1)) + 1) for j in range(software_count))
 
     for i in range(software_count):
         initial_redundancy[i] = 2  # 一つのソフトウェアの冗長化度合いを2に変更
-        total_servers_red = sum(initial_redundancy[j] * ((r_add * (np.sum(matrix[:, j]) - 1)) + 1) for j in range(software_count))
-        print(np.sum(matrix[:,j]) for j in range(software_count))
+        total_servers_red = sum(initial_redundancy[j] * ((r_add * (sum(matrix[j]) - 1)) + 1) for j in range(software_count))
+        print(sum(matrix[j]) for j in range(software_count))
         
         if total_servers_red <= H:
             # 冗長化後のシステム全体の可用性を計算

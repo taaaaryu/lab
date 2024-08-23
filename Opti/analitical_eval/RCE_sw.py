@@ -38,13 +38,10 @@ def generate_redundancy_combinations(num_software, max_servers, h_add):
     return all_redundancies
 
 # Function to search for the best redundancy
-def search_best_redundancy(all_combinations, all_redundancies,RCE):
-    r_unav = []
+def search_best_redundancy(all_combinations, all_redundancies):
+    r_av = []
     best_reds = []
-    best_comb = []
-    exist_RCE=[]
-    for k in range(len(all_combinations)):
-        comb = all_combinations[k]
+    for comb in all_combinations:
         each_redundancy = all_redundancies[len(comb) - 1]
         max_system_avail = -1
         best_redundancy = None
@@ -58,12 +55,9 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
                         max_system_avail = system_avail
                         best_redundancy = redundancy
         if best_redundancy:
-            r_unav.append(1 - max_system_avail)
+            r_av.append(max_system_avail)
             best_reds.append(best_redundancy)
-            best_comb.append(comb)
-            exist_RCE.append(RCE[k])
-
-    return r_unav, best_reds, best_comb, exist_RCE
+    return r_av, best_reds
 
 # Main process
 for H in Resourse:
@@ -109,37 +103,32 @@ for H in Resourse:
         placement_result_dict = dict(zip(p_comb, p_rue))
         #print(placement_result_dict)
         p_max_comb = []
-        p_max_RCE = []
         
-        #RCEの高い順に組み合わせを並び替える
-        for i in range(len(p_comb)):
+
+        for i in range(int(POP*len(p_comb))):
             max_pk, max_pv = max(placement_result_dict.items(), key=lambda x: x[1])
             p_max_comb.append(ast.literal_eval(max_pk))
-            p_max_RCE.append(max_pv)
+            print(max_pk, max_pv)
             del placement_result_dict[max_pk]
+             
+        count_software = [0]*len(softwares)
+  
+        for i in range(int(POP*len(p_comb))):
+            max_pk, max_pv = max(placement_result_dict.items(), key=lambda x: x[1])
+            good_comb =  ast.literal_eval(max_pk)
+            count_software[len(good_comb)-1] += 1
+            p_max_comb.append(good_comb)
+            del placement_result_dict[max_pk]
+        
+        x = [i+1 for i in range(len(softwares))]
+        
+        ax.bar(x, count_software, edgecolor='black')
+        ax.set_xlabel('Number of Software')
+        ax.set_ylabel('Counts')
+        ax.set_title(f'Number fo Softwares in good RUE r_Add = {h_add}, Resource = {H}')
+        ax.set_xticks(x)
 
-        a = int(len(p_rue)*POP)
-
-
-        unav, red, comb, before_red_RCE = search_best_redundancy(p_max_comb, all_red, p_max_RCE)
-        RCE_sort = sorted(before_red_RCE)
-        line = RCE_sort[-a]
-
-
-        ax.plot(before_red_RCE, unav, label = "Unavailability - RCE")
-        plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"upper{POP*100}%")
-    
-        # Add `av` values to the CDF plot
-        #av_sorted = sorted([1-a for a in av],reverse=True)
-        #av_sy = [i / (len(av_sorted) - 1) for i in range(len(av_sorted))]
-        #ax.plot(av_sorted, av_sy, label="System Availability After Redundancy", color="green", linestyle="--")
-
-        ax.set_title(f'H = {H}, h_add = {h_add}', fontsize=14)
-        ax.set_xlabel("RCE", fontsize=12)
-        ax.set_ylabel("Unavailability", fontsize=12)
-        ax.set_yscale('log')
-
-        ax.legend()
-        plt.show()
-        #plt.savefig(f"val_{h_add}-{H}.png")
-        #print(h_add)
+        
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.savefig(f"num_sw_{h_add}-{H}.png")
