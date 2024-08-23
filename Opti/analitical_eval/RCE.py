@@ -5,8 +5,8 @@ from itertools import combinations, chain, product
 import ast
 
 # Parameters
-Resourse = [15,20,25]  # Server resource
-h_adds = [0.7,0.8]  # Increment in server count per additional service
+Resourse = [20]  # Server resource
+h_adds = [0.5]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
@@ -104,14 +104,15 @@ for H in Resourse:
         #print(placement_result_dict)
         p_max_comb = []
         
-        """
+
         for i in range(int(POP*len(p_comb))):
             max_pk, max_pv = max(placement_result_dict.items(), key=lambda x: x[1])
             p_max_comb.append(ast.literal_eval(max_pk))
-            del placement_result_dict[max_pk]"""
-            
+            print(max_pk, max_pv)
+            del placement_result_dict[max_pk]
+        """  
         count_software = [0]*len(softwares)
-        
+  
         for i in range(int(POP*len(p_comb))):
             max_pk, max_pv = max(placement_result_dict.items(), key=lambda x: x[1])
             good_comb =  ast.literal_eval(max_pk)
@@ -131,26 +132,24 @@ for H in Resourse:
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         plt.savefig(f"num_sw_{h_add}-{H}.png")
-
-        """
+"""
         av, red = search_best_redundancy(p_max_comb, all_red)
         
-        
+        #RCE
         p_rue_sort = sorted(p_rue)
         y = [i/(len(p_rue_sort)-1) for i in range(len(p_rue_sort))]
         ax.plot(p_rue_sort,y)
         
-        
+    
         # Add `av` values to the CDF plot
-        av_sorted = sorted([1-a for a in av],reverse=True)
-        av_sy = [i / (len(av_sorted) - 1) for i in range(len(av_sorted))]
-        ax.plot(av_sorted, av_sy, label="System Availability After Redundancy", color="green", linestyle="--")
+        #av_sorted = sorted([1-a for a in av],reverse=True)
+        #av_sy = [i / (len(av_sorted) - 1) for i in range(len(av_sorted))]
+        #ax.plot(av_sorted, av_sy, label="System Availability After Redundancy", color="green", linestyle="--")
 
         ax.set_title(f'H = {H}, h_add = {h_add}', fontsize=14)
-        ax.set_xlabel("Unavailability", fontsize=12)
+        ax.set_xlabel("RCE", fontsize=12)
         ax.set_ylabel("CDF", fontsize=12)
         #ax.legend()
         plt.show()
         #plt.savefig(f"val_{h_add}-{H}.png")
         #print(h_add)
-        """
