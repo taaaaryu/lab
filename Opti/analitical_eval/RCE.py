@@ -5,8 +5,8 @@ from itertools import combinations, chain, product
 import ast
 
 # Parameters
-Resourse = [20]  # Server resource
-h_adds = [0.5]  # Increment in server count per additional service
+Resourse = [15,20,25]  # Server resource
+h_adds = [0.5,1,1.5]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
@@ -140,6 +140,6 @@ for H in Resourse:
         ax.set_yscale('log')
 
         ax.legend()
-        plt.show()
-        #plt.savefig(f"val_{h_add}-{H}.png")
+        #plt.show()
+        plt.savefig(f"RCE-Unavail_{h_add}-{H}.png")
         #print(h_add)
