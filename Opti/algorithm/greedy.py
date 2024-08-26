@@ -60,17 +60,27 @@ def divide_sw(matrix,one_list): #1つのSWを2つに分解する
         end = cp_list[idx+1]
         if end - start >1:
             a = random.randint(start+1,end-1) #どこで分割するか決定
-            np.insert(matrix,idx+1,0,axis=0)
-            print(matrix)
+            div_matrix =  np.insert(matrix,idx+1,0,axis=0)
+
             for i in range(a,cp_list[idx+1]): #分割地点より後ろは0
-                matrix[idx][i] = 0
-                matrix[idx+1][i] = 1
-            print(matrix)
+                div_matrix[idx][i] = 0
+                div_matrix[idx+1][i] = 1
             flag = 1
         else:
             continue
-    return matrix
+    return div_matrix
 
+def integrate_sw(matrix,one_list):
+    cp_list = one_list.copy()
+    idx = random.randint(1,len(cp_list)-2)
+    start = cp_list[idx-1]
+    end = cp_list[idx+1]
+    print(f"before{matrix}")
+    for i in range(start,end):
+        matrix[idx-1][i] = 1
+    new_matrix = np.delete(matrix,idx,0)
+    print(new_matrix)
+    return new_matrix
 
 
 
@@ -89,7 +99,6 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
             if matrix[col][i]==0:
                 one_list.append(i)
                 col += 1
-        print(one_list,matrix)
         ch = random.random()
         mini_RUE_list = []
         matrix_list = []
@@ -118,6 +127,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
 
         one_list.append(len(matrix[0]))
         one_list.insert(0,0)
+        print(one_list)
 
         if software_count <= 9: #sw数を増やす
             new_sw_p_matrix = divide_sw(matrix, one_list)
@@ -125,8 +135,8 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
             RUE_list.append(new_RUE_p)
 
         elif software_count >= 2: #sw数を減らす
-            new_sw_n_matrix = make_matrix(service,software_count-1)
-            new_RUE_n = calc_RUE(new_sw_n_matrix, software_count-1, service_avail, server_avail, r_add, H)
+            new_sw_n_matrix = integrate_sw(matrix, one_list)
+            new_RUE_n = calc_RUE(new_sw_n_matrix,len(new_sw_n_matrix), service_avail, server_avail, r_add, H)
             RUE_list.append(new_RUE_n)
         
         #確率で２番目に良い解を選ぶ
@@ -162,7 +172,7 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
 
     for _ in range(num_starts):
         # 初期化：r_addに応じてソフトウェア数を少なくする
-        software_count = np.random.randint(1, num_service)##
+        software_count = np.random.randint(1, num_service)
         matrix = np.zeros((software_count, num_service), dtype=int)
         if software_count == 1:
             matrix = np.ones((software_count,num_service),dtype = int)
@@ -183,7 +193,7 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
     return best_global_matrix, best_global_software_count, best_global_RUE
 
 # 使用例
-r_add = 0.9  # 例としてr_add値
+r_add = 1.5  # 例としてr_add値
 num_service = 10 #サービス数
 service_avail = [0.99]*num_service  # サービス可用性の例
 server_avail = 0.99  # サーバー可用性の例
