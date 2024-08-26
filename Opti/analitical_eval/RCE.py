@@ -6,7 +6,7 @@ import ast
 
 # Parameters
 Resourse = [15,20,25]  # Server resource
-h_adds = [0.5,1,1.5]  # Increment in server count per additional service
+h_adds = [0.9]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
