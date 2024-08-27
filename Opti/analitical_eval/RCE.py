@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations, chain, product
 import ast
+import time
 
 # Parameters
 Resourse = [15,20,25]  # Server resource
-h_adds = [0.5,1,1.5]  # Increment in server count per additional service
+h_adds = [1]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
@@ -42,7 +43,7 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
     r_unav = []
     best_reds = []
     best_comb = []
-    exist_RCE=[]
+    exist_RCE=[] #RCEの高さとavailabilityの相関比較用にリスト作成
     for k in range(len(all_combinations)):
         comb = all_combinations[k]
         each_redundancy = all_redundancies[len(comb) - 1]
@@ -70,6 +71,9 @@ for H in Resourse:
     alloc = H*0.95  # Minimum server resource allocation
 
     for h_add in h_adds:
+        
+        start = time.time()
+        
         fig, ax = plt.subplots(figsize=(12, 8))
 
         # Calculate and plot CDF for system availability after redundancy
@@ -120,8 +124,13 @@ for H in Resourse:
 
         a = int(len(p_rue)*POP)
 
-        print(p_max_comb,all_red)
         unav, red, comb, before_red_RCE = search_best_redundancy(p_max_comb, all_red, p_max_RCE)
+        
+        end = time.time()
+        time_diff = end - start  # 処理完了後の時刻から処理開始前の時刻を減算する
+        print(f"{h_add}, {H}")
+        print(f"time = {time_diff}")  # 処理にかかった時間データを使用
+        
         RCE_sort = sorted(before_red_RCE)
         line = RCE_sort[-a]
 

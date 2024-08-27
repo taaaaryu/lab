@@ -1,6 +1,8 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+from itertools import product
+import time
 
 def calc_software_av(services_in_sw, service_avail, server_avail):
     non_sero_idx = np.nonzero(services_in_sw)
@@ -73,10 +75,39 @@ def integrate_sw(matrix, one_list):
     new_matrix = np.delete(matrix, idx, 0)
     return new_matrix
 
+# Function to generate redundancy combinations
+def generate_redundancy_combinations(num_software, max_servers, r_add):
+    all_redundancies = [redundancy for redundancy in product(range(1, max_redundancy), repeat=num_software)]
+    return all_redundancies
+
+def search_best_redundancy(comb, all_redundancy): #all_combinationsは
+    r_unav = []
+    best_reds = []
+    best_comb = []
+    max_system_avail = -1
+    best_redundancy = None
+    sw = len(comb)
+    for redundancy in all_redundancy:
+        total_servers = sum(redundancy[i] * ((r_add*(sum(comb[i])-1))+1) for i in range(sw))
+        if total_servers <= H:
+            if alloc*H <= total_servers:
+                software_availability = [calc_software_av(group, service_avail, server_avail) for group in comb]
+                system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
+                if system_avail > max_system_avail:
+                    max_system_avail = system_avail
+                    best_redundancy = redundancy
+    if best_redundancy:
+        r_unav.append(1 - max_system_avail)
+        best_reds.append(best_redundancy)
+        best_comb.append(comb)
+
+    return r_unav, best_reds, best_comb
+
+
 def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H, service):
-    best_RUEs = [-np.inf, -np.inf, -np.inf]
-    best_matrices = [None, None, None]
-    best_counts = [0, 0, 0]
+    best_RUEs = [-np.inf]*num_next
+    best_matrices = [None]*num_next
+    best_counts = [0]*num_next
 
     list = []
     best_matrix = matrix.copy()
@@ -91,7 +122,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
             if matrix[col][i] == 0:
                 one_list.append(i)
                 col += 1
-        ch = random.random()
+
         mini_RUE_list = []
         matrix_list = []
         for j in range(len(one_list)):
@@ -123,16 +154,18 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
             new_sw_p_matrix = divide_sw(matrix, one_list)
             new_RUE_p = calc_RUE(new_sw_p_matrix, len(new_sw_p_matrix), service_avail, server_avail, r_add, H)
             RUE_list.append(new_RUE_p)
+        else:
+            new_RUE_p = 0
 
-        elif software_count >= 2:
+        if software_count >= 2:
             new_sw_n_matrix = integrate_sw(matrix, one_list)
             new_RUE_n = calc_RUE(new_sw_n_matrix, len(new_sw_n_matrix), service_avail, server_avail, r_add, H)
             RUE_list.append(new_RUE_n)
+        else:
+            new_RUE_n = 0
 
         max_RUE = max(RUE_list)
-        if ch < 0.1:
-            RUE_list.sort(reverse=True)
-            max_RUE = RUE_list[1]
+            
         if max_RUE > best_RUE:
             if max_RUE == new_RUE:
                 best_RUE = new_RUE
@@ -149,37 +182,37 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
             best_RUE = max_RUE
         list.append(best_RUE)
 
+                
         if best_RUE > best_RUEs[0]:
-            best_RUEs[2] = best_RUEs[1]
-            best_matrices[2] = best_matrices[1]
-            best_counts[2] = best_counts[1]
-
-            best_RUEs[1] = best_RUEs[0]
-            best_matrices[1] = best_matrices[0]
-            best_counts[1] = best_counts[0]
+            # 新しいRUEが現在のトップよりも高い場合、他のRUEを下にシフトして、新しいRUEを最上位に挿入する
+            for i in range(num_next - 1, 0, -1):
+                best_RUEs[i] = best_RUEs[i - 1]
+                best_matrices[i] = best_matrices[i - 1]
+                best_counts[i] = best_counts[i - 1]
 
             best_RUEs[0] = best_RUE
             best_matrices[0] = best_matrix
             best_counts[0] = software_count
-        elif best_RUE > best_RUEs[1]:
-            best_RUEs[2] = best_RUEs[1]
-            best_matrices[2] = best_matrices[1]
-            best_counts[2] = best_counts[1]
+        else:
+            for i in range(1, num_next):
+                if best_RUE > best_RUEs[i]:
+                    # 指定した位置に新しいRUEを挿入し、他のRUEを下にシフトする
+                    for j in range(num_next - 1, i, -1):
+                        best_RUEs[j] = best_RUEs[j - 1]
+                        best_matrices[j] = best_matrices[j - 1]
+                        best_counts[j] = best_counts[j - 1]
 
-            best_RUEs[1] = best_RUE
-            best_matrices[1] = best_matrix
-            best_counts[1] = software_count
-        elif best_RUE > best_RUEs[2]:
-            best_RUEs[2] = best_RUE
-            best_matrices[2] = best_matrix
-            best_counts[2] = software_count
+                    best_RUEs[i] = best_RUE
+                    best_matrices[i] = best_matrix
+                    best_counts[i] = software_count
+                    break
 
     return best_matrices, best_counts, best_RUEs, list
 
-def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts=30):
-    best_global_matrices = [None, None, None]
-    best_global_RUEs = [-np.inf, -np.inf, -np.inf]
-    best_global_counts = [0, 0, 0]
+def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts):
+    best_global_matrices = [None]*num_next
+    best_global_RUEs = [-np.inf]*num_next
+    best_global_counts = [0]*num_next
     RUE_list = []
     x_gene = [i for i in range(1, GENERATION + 1)]
     service = [i for i in range(1, num_service)]
@@ -205,7 +238,7 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
 
         RUE_list.append(RUE_each_list)
 
-        for i in range(3):
+        for i in range(num_next):
             if best_RUEs[i] > best_global_RUEs[i]:
                 if all(np.array_equal(best_matrices[i], bm) == False for bm in best_global_matrices):
                     best_global_matrices[i] = best_matrices[i]
@@ -218,28 +251,60 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
 
 
 # 使用例
-r_adds = [1]  # 例としてr_add値
+r_adds = [0.5]  # 例としてr_add値
 num_service = 10 #サービス数
 service_avail = [0.99]*num_service  # サービス可用性の例
 server_avail = 0.99  # サーバー可用性の例
 Resources = [15,20,25]  # 最大サーバー制約の例
+max_redundancy = 5 #1つのSWの冗長化度合い上限
+num_starts = 30
+num_next = 10 #何個を冗長化するか
+alloc = 0.95
 
 GENERATION = 10
 
 for H in Resources:
     for r_add in r_adds:
-
+        start = time.time()
         fig, ax = plt.subplots(figsize=(12, 8))
-        best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, num_service)
+        best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, num_service,num_starts)
 
         plt.xlabel("Generation")
         plt.ylabel("RCE")
         plt.title(f"r_add = {r_add}, Resource = {H}")
         
-        plt.show()
+        #plt.show()
         #plt.savefig(f"RCE-Greedy_{r_add}-{H}.png", bbox_inches='tight', pad_inches=0)
         print(f"r_add = {r_add}, Resource = {H}")
-        for i in range(3):
+        
+        result_unav = []
+        result_red = []
+        result_comb = []
+        
+        """for i in range(num_next):
             print(f"Best Matrix:\n{best_matrix[i]}")
             print(f"Best Software Count: {best_software_count[i]}")
-            print(f"Best RCE: {best_RUE[i]}")
+            print(f"Best RCE: {best_RUE[i]}")"""
+        
+        for p in range(num_next):
+            if best_matrix[p] is not None:
+                sw_redundancies = generate_redundancy_combinations(best_software_count[p], H, r_add)
+                unav, red, comb = search_best_redundancy(best_matrix[p], sw_redundancies)
+                result_unav.append(unav)
+                result_comb.append(comb)
+                result_red.append(red)
+        min_unav = min(result_unav)
+        opti_idx = result_unav.index(min_unav)
+        opti_comb = result_comb[opti_idx]
+        opti_red = result_red[opti_idx]
+        end = time.time()
+        
+        time_diff = end - start  # 処理完了後の時刻から処理開始前の時刻を減算する
+        print(f"time = {time_diff}")  # 処理にかかった時間データを使用
+        
+        print(f"minimum Uavailability = {min_unav}")
+        print(opti_comb,opti_red)
+        
+            
+        
+            
