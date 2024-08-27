@@ -6,7 +6,7 @@ import ast
 
 # Parameters
 Resourse = [15,20,25]  # Server resource
-h_adds = [0.9]  # Increment in server count per additional service
+h_adds = [0.5,1,1.5]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
@@ -120,7 +120,7 @@ for H in Resourse:
 
         a = int(len(p_rue)*POP)
 
-
+        print(p_max_comb,all_red)
         unav, red, comb, before_red_RCE = search_best_redundancy(p_max_comb, all_red, p_max_RCE)
         RCE_sort = sorted(before_red_RCE)
         line = RCE_sort[-a]
@@ -141,5 +141,6 @@ for H in Resourse:
 
         ax.legend()
         #plt.show()
-        plt.savefig(f"RCE-Unavail_{h_add}-{H}.png")
+        fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
+        #plt.savefig(f"RCE-Unavail_{h_add}-{H}.png", bbox_inches='tight', pad_inches=0)
         #print(h_add)

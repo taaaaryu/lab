@@ -75,11 +75,9 @@ def integrate_sw(matrix,one_list):
     idx = random.randint(1,len(cp_list)-2)
     start = cp_list[idx-1]
     end = cp_list[idx+1]
-    print(f"before{matrix}")
     for i in range(start,end):
         matrix[idx-1][i] = 1
     new_matrix = np.delete(matrix,idx,0)
-    print(new_matrix)
     return new_matrix
 
 
@@ -127,7 +125,6 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
 
         one_list.append(len(matrix[0]))
         one_list.insert(0,0)
-        print(one_list)
 
         if software_count <= 9: #sw数を増やす
             new_sw_p_matrix = divide_sw(matrix, one_list)
@@ -162,7 +159,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
 
     return best_matrix, software_count, best_RUE, list
 
-def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts=10):
+def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts=30):
     best_global_matrix = None
     best_global_RUE = -np.inf
     best_global_software_count = 0
@@ -193,21 +190,28 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
     return best_global_matrix, best_global_software_count, best_global_RUE
 
 # 使用例
-r_add = 1.5  # 例としてr_add値
+r_adds = [0.5,1,1.5]  # 例としてr_add値
 num_service = 10 #サービス数
 service_avail = [0.99]*num_service  # サービス可用性の例
 server_avail = 0.99  # サーバー可用性の例
-H = 20  # 最大サーバー制約の例
+Resources = [15,20,25]  # 最大サーバー制約の例
 
 GENERATION = 20
 
-fig, ax = plt.subplots(figsize=(12, 8))
-best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, num_service)
+for H in Resources:
+    for r_add in r_adds:
 
-plt.xlabel("Generation")
-plt.ylabel("RCE")
-plt.show()
+        fig, ax = plt.subplots(figsize=(12, 8))
+        best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, num_service)
 
-print(f"Best Matrix:\n{best_matrix}")
-print(f"Best Software Count: {best_software_count}")
-print(f"Best RCE: {best_RUE}")
+        plt.xlabel("Generation")
+        plt.ylabel("RCE")
+        plt.title(f"r_add = {r_add}, Resource = {H}")
+        
+        plt.savefig(f"RCE-Greedy_{r_add}-{H}.png", bbox_inches='tight', pad_inches=0)
+        print(f"r_add = {r_add}, Resource = {H}")
+        print(f"Best Matrix:\n{best_matrix}")
+        print(f"Best Software Count: {best_software_count}")
+        print(f"Best RCE: {best_RUE}")
+
+
