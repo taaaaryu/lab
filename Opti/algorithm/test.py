@@ -87,8 +87,11 @@ def search_best_redundancy(comb, all_redundancy): #all_combinationsは
     max_system_avail = -1
     best_redundancy = None
     sw = len(comb)
+    sum_comb = [np.sum(comb[i])-1 for i in range(sw)]
+    #print(sum_comb)
     for redundancy in all_redundancy:
-        total_servers = sum(redundancy[i] * ((r_add*(sum(comb[i])-1))+1) for i in range(sw))
+        sw_servers = [redundancy[i] * ((r_add*sum_comb[i])+1) for i in range(sw)]
+        total_servers = np.sum(sw_servers)
         if total_servers <= H:
             if alloc*H <= total_servers:
                 software_availability = [calc_software_av(group, service_avail, server_avail) for group in comb]
@@ -240,7 +243,7 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
 
         for i in range(num_next):
             if best_RUEs[i] > best_global_RUEs[i]:
-                if all(np.array_equal(best_matrices[i], bm) == False for bm in best_global_matrices):
+                if all(not np.array_equal(best_matrices[i], bm) for bm in best_global_matrices):
                     best_global_matrices[i] = best_matrices[i]
                     best_global_counts[i] = best_counts[i]
                     best_global_RUEs[i] = best_RUEs[i]
@@ -251,11 +254,12 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
 
 
 # 使用例
-r_adds = [0.5]  # 例としてr_add値
-num_service = 10 #サービス数
-service_avail = [0.99]*num_service  # サービス可用性の例
+r_adds = [1]  # 例としてr_add値
+num_service = 20 #サービス数
+service_avail = [0.99]*num_service # サービス可用性の例
+#service_avail = [0.99,0.99,0.99,0.9,0.99,0.99,0.99,0.99,0.9,0.99]
 server_avail = 0.99  # サーバー可用性の例
-Resources = [15,20,25]  # 最大サーバー制約の例
+Resources = [40]  # 最大サーバー制約の例
 max_redundancy = 5 #1つのSWの冗長化度合い上限
 num_starts = 30
 num_next = 10 #何個を冗長化するか
@@ -288,6 +292,7 @@ for H in Resources:
         
         for p in range(num_next):
             if best_matrix[p] is not None:
+                comb_sum = np.sum(best_matrix[p], axis=1)
                 sw_redundancies = generate_redundancy_combinations(best_software_count[p], H, r_add)
                 unav, red, comb = search_best_redundancy(best_matrix[p], sw_redundancies)
                 result_unav.append(unav)

@@ -6,7 +6,7 @@ import ast
 import time
 
 # Parameters
-Resourse = [15,20,25]  # Server resource
+Resourse = [20]  # Server resource
 h_adds = [1]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
