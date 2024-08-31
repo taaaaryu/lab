@@ -6,19 +6,19 @@ import time
 
 
 def calc_software_av(services_in_sw, service_avail, server_avail):
-    services_in_sw = np.array(services_in_sw, dtype=int)
+    services_array = np.array(services_in_sw, dtype=int)
     sw_avail_list = []
-    idx = np.cumsum(np.insert(services_in_sw[:-1], 0, 0))
     count = 0
-    for k in idx:
+    for k in services_array:
         sw_avail=1
-        for i in range(count,int(k)):
-            sw_avail *= service_avail[i]
+        for i in range(k):
+            sw_avail *= service_avail[count]
             count += 1
         sw_avail_list.append(sw_avail*server_avail)
     return sw_avail_list
 
 def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
+    avg_efficiency = []
     initial_redundancy = np.ones(software_count)
     sum_matrix = np.sum(matrix, axis=1)
     software_availability = calc_software_av(sum_matrix, service_avail, server_avail)
@@ -26,13 +26,16 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
     system_avail = np.prod(sw_list)
     matrix_resource = r_add * (sum_matrix - 1) + 1
     total_servers = np.dot(initial_redundancy, matrix_resource)  # dot product
-##ここをいじる
-    total_servers_red = np.outer(np.arange(1, 3), matrix_resource)
-    total_servers_mask = total_servers_red <= H
-    system_avail_red = np.prod(1 - (1 - sw_list[:, np.newaxis]) ** np.arange(1, 3), axis=0)
-    redundancy_cost_efficiency = np.where(total_servers_mask, (system_avail_red - system_avail) / (total_servers_red - total_servers[:, np.newaxis]), 0)
-    avg_efficiency = np.mean(redundancy_cost_efficiency[1])  # 1 corresponds to redundancy=2
-    return avg_efficiency
+
+    for i in range(software_count):
+        initial_redundancy[i] += 1
+        total_servers_red = np.dot(initial_redundancy, matrix_resource)
+        total_servers_mask = total_servers_red <= H
+        system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
+        redundancy_cost_efficiency = np.where(total_servers_mask, (system_avail_red - system_avail) / (total_servers_red - total_servers), 0)
+        avg_efficiency.append(redundancy_cost_efficiency) # 1 corresponds to redundancy=2
+        initial_redundancy[i] = 1
+    return np.mean(avg_efficiency)
 
 def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts):
     best_global_matrices = [None] * num_next
@@ -78,7 +81,6 @@ def make_matrix(service, software_count):
 def divide_sw(matrix, one_list):
     flag = 0
     cp_list = one_list.copy()
-    print(cp_list)
     while flag == 0:
         idx = random.randint(0, len(cp_list) - 2)
         start = cp_list[idx]
@@ -119,18 +121,20 @@ def search_best_redundancy(comb, all_redundancy): #all_combinationsは
     best_redundancy = None
     sw = len(comb)
     sum_comb = [(r_add*(sum(comb[i])-1))+1 for i in range(sw)]
+    services_in_sw = np.sum(comb,axis=1)
+    print(services_in_sw)
+    software_availability = calc_software_av(services_in_sw, service_avail, server_avail)
     for r in all_redundancy:
         redundancy = np.array(r)
         sw_servers = [redundancy @ sum_comb]
         total_servers = np.sum(sw_servers)
         if total_servers <= H:
             if alloc*H <= total_servers:
-                software_availability = calc_software_av(sum_comb, service_avail, server_avail)
                 system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
                 if system_avail > max_system_avail:
                     max_system_avail = system_avail
                     best_redundancy = redundancy
-    if best_redundancy.all():
+    if best_redundancy is not None:
         r_unav.append(1 - max_system_avail)
         best_reds.append(best_redundancy)
         best_comb.append(comb)
@@ -146,6 +150,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
     list = []
     best_matrix = matrix.copy()
     best_RUE = calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H)
+    print(best_RUE)
 
     for k in range(GENERATION):
         RUE_list = [best_RUE]
@@ -157,8 +162,8 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
                 one_list.append(i)
                 col += 1
 
-        mini_RUE_list = []
-        matrix_list = []
+        mini_RUE_list = [0]
+        matrix_list = [[0]]
         for j in range(len(one_list)):
             a = one_list[j]
             one = matrix.copy()
@@ -293,7 +298,6 @@ for r_add in r_adds:
                 if best_matrix[p] is not None:
                     comb_sum = np.sum(best_matrix[p], axis=1)
                     sw_redundancies = generate_redundancy_combinations(best_software_count[p], H, r_add)
-                    print(best_matrix[p])
                     unav, red, comb = search_best_redundancy(best_matrix[p], sw_redundancies)
                     result_unav.append(unav)
                     result_comb.append(comb)
