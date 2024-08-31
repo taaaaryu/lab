@@ -4,23 +4,68 @@ import matplotlib.pyplot as plt
 from itertools import product
 import time
 
+
 def calc_software_av(services_in_sw, service_avail, server_avail):
-    sw_avail = 1
+    services_in_sw = np.array(services_in_sw, dtype=int)
     sw_avail_list = []
-    idx = 0
-    print(services_in_sw)
-    for k in services_in_sw:
+    idx = np.cumsum(np.insert(services_in_sw[:-1], 0, 0))
+    count = 0
+    for k in idx:
         sw_avail=1
-        for i in range(int(k)):
-            sw_avail *= service_avail[idx]
-            idx += 1
-            print(idx)
+        for i in range(count,int(k)):
+            sw_avail *= service_avail[i]
+            count += 1
         sw_avail_list.append(sw_avail*server_avail)
     return sw_avail_list
 
+def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
+    initial_redundancy = np.ones(software_count)
+    sum_matrix = np.sum(matrix, axis=1)
+    software_availability = calc_software_av(sum_matrix, service_avail, server_avail)
+    sw_list = np.array(software_availability)
+    system_avail = np.prod(sw_list)
+    matrix_resource = r_add * (sum_matrix - 1) + 1
+    total_servers = np.dot(initial_redundancy, matrix_resource)  # dot product
+##ここをいじる
+    total_servers_red = np.outer(np.arange(1, 3), matrix_resource)
+    total_servers_mask = total_servers_red <= H
+    system_avail_red = np.prod(1 - (1 - sw_list[:, np.newaxis]) ** np.arange(1, 3), axis=0)
+    redundancy_cost_efficiency = np.where(total_servers_mask, (system_avail_red - system_avail) / (total_servers_red - total_servers[:, np.newaxis]), 0)
+    avg_efficiency = np.mean(redundancy_cost_efficiency[1])  # 1 corresponds to redundancy=2
+    return avg_efficiency
+
+def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts):
+    best_global_matrices = [None] * num_next
+    best_global_RUEs = [-np.inf] * num_next
+    best_global_counts = [0] * num_next
+    RUE_list = []
+    x_gene = np.arange(1, GENERATION + 1)
+    service = np.arange(1, num_service)
+    software_count_float = np.random.normal(num_service / 2, 2, num_starts)
+    software_counts = np.clip(software_count_float.astype(int), 1, 10)
+
+    for software_count in software_counts:
+        matrix = make_matrix(service, software_count)
+        best_matrices, best_counts, best_RUEs, RUE_each_list = greedy_search(matrix, software_count, service_avail, server_avail, r_add, H, service)
+
+        RUE_list.append(RUE_each_list)
+
+        for i in range(num_next):
+            if best_RUEs[i] > best_global_RUEs[i]:
+                if all(not np.array_equal(best_matrices[i], bm) for bm in best_global_matrices):
+                    best_global_matrices[i] = best_matrices[i]
+                    best_global_counts[i] = best_counts[i]
+                    best_global_RUEs[i] = best_RUEs[i]
+
+        plt.plot(x_gene, RUE_each_list)
+
+    return best_global_matrices, best_global_counts, best_global_RUEs
+
+
 def make_matrix(service, software_count):
     matrix = np.zeros((software_count, len(service) + 1), dtype=int)
-    a = random.sample(service, software_count - 1)
+    service_list = service.tolist()
+    a = random.sample(service_list, software_count - 1)
     a.append(len(service) + 1)
     a.sort()
     idx = 0
@@ -30,34 +75,10 @@ def make_matrix(service, software_count):
             idx += 1
     return matrix
 
-def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
-    initial_redundancy = [1] * software_count
-    redundancy_cost_efficiency = []
-    sum_matrix = np.sum(matrix,axis=1)
-    software_availability = calc_software_av(sum_matrix, service_avail, server_avail)
-    sw_list = np.array(software_availability)
-    system_avail = np.prod(sw_list)
-    matrix_resource = [r_add*((np.sum(matrix[j]) - 1) + 1) for j in range(len(matrix))]
-    total_servers = np.inner(initial_redundancy,matrix_resource) #naiseki
-
-    for i in range(software_count):
-        initial_redundancy[i] = 2
-        total_servers_red = np.inner(initial_redundancy,matrix_resource)
-
-        if total_servers_red <= H:
-            system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
-            redundancy_cost_efficiency.append((system_avail_red - system_avail) / (total_servers_red - total_servers))
-        else:
-            redundancy_cost_efficiency.append(0)
-
-        initial_redundancy[i] = 1
-
-    avg_efficiency = np.mean(redundancy_cost_efficiency)
-    return avg_efficiency
-
 def divide_sw(matrix, one_list):
     flag = 0
     cp_list = one_list.copy()
+    print(cp_list)
     while flag == 0:
         idx = random.randint(0, len(cp_list) - 2)
         start = cp_list[idx]
@@ -65,7 +86,8 @@ def divide_sw(matrix, one_list):
         if end - start > 1:
             a = random.randint(start + 1, end - 1)
             div_matrix = np.insert(matrix, idx + 1, 0, axis=0)
-
+            
+            
             for i in range(a, cp_list[idx + 1]):
                 div_matrix[idx][i] = 0
                 div_matrix[idx + 1][i] = 1
@@ -221,46 +243,6 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
 
     return best_matrices, best_counts, best_RUEs, list
 
-def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_starts):
-    best_global_matrices = [None]*num_next
-    best_global_RUEs = [-np.inf]*num_next
-    best_global_counts = [0]*num_next
-    RUE_list = []
-    x_gene = [i for i in range(1, GENERATION + 1)]
-    service = [i for i in range(1, num_service)]
-    software_count_float = np.random.normal(num_service/2, 2, num_starts)
-    software_counts = [int(round(software_count_float[n], 0)) for n in range(len(software_count_float))] 
-
-    for k in range(num_starts):
-        software_count = software_counts[k]
-        if software_count < 1 or 10 < software_count:
-            if software_count < 1:
-                software_count = 1
-            else:
-                software_count = 10
-
-        matrix = np.zeros((software_count, num_service), dtype=int)
-        if software_count == 1:
-            matrix = np.ones((software_count, num_service), dtype=int)
-            continue
-        else:
-            matrix = make_matrix(service, software_count)
-
-        best_matrices, best_counts, best_RUEs, RUE_each_list = greedy_search(matrix, software_count, service_avail, server_avail, r_add, H, service)
-
-        RUE_list.append(RUE_each_list)
-
-        for i in range(num_next):
-            if best_RUEs[i] > best_global_RUEs[i]:
-                if all(not np.array_equal(best_matrices[i], bm) for bm in best_global_matrices):
-                    best_global_matrices[i] = best_matrices[i]
-                    best_global_counts[i] = best_counts[i]
-                    best_global_RUEs[i] = best_RUEs[i]
-        
-        plt.plot(x_gene, RUE_each_list)
-
-    return best_global_matrices, best_global_counts, best_global_RUEs
-
 
 # 使用例
 r_adds = [1.5]  # 例としてr_add値
@@ -336,9 +318,3 @@ for i in range(len(r_adds)*len(Resources)):
 for i in range(len(r_adds)*len(Resources)):
     print(f"unav = {unav_list[i]}")
         
-        
-            
-        
-            
-        
-            
