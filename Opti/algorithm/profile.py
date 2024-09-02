@@ -3,6 +3,8 @@ import random
 import matplotlib.pyplot as plt
 from itertools import product
 import time
+from numba import njit
+from line_profiler import LineProfiler
 
 
 def calc_software_av(services_in_sw, service_avail, server_avail):
@@ -49,7 +51,7 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
 
     for software_count in software_counts:
         matrix = make_matrix(service, software_count)
-        best_matrices, best_counts, best_RUEs, RUE_each_list = greedy_search(matrix, software_count, service_avail, server_avail, r_add, H, service)
+        best_matrices, best_counts, best_RUEs, RUE_each_list = greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
 
         RUE_list.append(RUE_each_list)
 
@@ -88,8 +90,6 @@ def divide_sw(matrix, one_list):
         if end - start > 1:
             a = random.randint(start + 1, end - 1)
             div_matrix = np.insert(matrix, idx + 1, 0, axis=0)
-            
-            
             for i in range(a, cp_list[idx + 1]):
                 div_matrix[idx][i] = 0
                 div_matrix[idx + 1][i] = 1
@@ -107,50 +107,50 @@ def integrate_sw(matrix, one_list):
         matrix[idx - 1][i] = 1
     new_matrix = np.delete(matrix, idx, 0)
     return new_matrix
+# generate_redundancy_combinationsの全ての組み合わせを事前に生成せず、必要な組み合わせを生成
+def generate_redundancy_combinations(num_software, max_redundancy):
+    return product(range(1, max_redundancy), repeat=num_software)
 
-# Function to generate redundancy combinations
-def generate_redundancy_combinations(num_software, max_servers, r_add):
-    all_redundancies = [list(redundancy) for redundancy in product(range(1, max_redundancy), repeat=num_software)]
-    return all_redundancies
+def calc_software_av_for_red(services_group, service_avail, SERVICES):
+    indices = [SERVICES.index(s) for s in services_group]
+    result = 1.0
+    for i in indices:
+        result *= service_avail[i]
+    return result
 
-def search_best_redundancy(comb, all_redundancy): #all_combinationsは
-    r_unav = []
-    best_reds = []
-    best_comb = []
-    max_system_avail = -1
-    best_redundancy = 0
-    sum_matrix = np.sum(comb,axis=1)
-    sum_comb = (r_add*(sum_matrix-1))+1
-    sum_comb = np.array(sum_comb)
-    services_in_sw = np.sum(comb,axis=1)
-    software_availability = calc_software_av(services_in_sw, service_avail, server_avail)
-    
-    for r in all_redundancy[::-1]:
-        redundancy = np.array(r)
-        redundancy_comb_compare = redundancy < best_redundancy
-        if redundancy_comb_compare.all():
-            #print(best_redundancy)
-            r_unav.append(1 - max_system_avail)
-            best_reds.append(best_redundancy)
-            best_comb.append(comb)
-            return r_unav, best_reds, best_comb
-        sw_servers = [redundancy @ sum_comb]
-        total_servers = np.sum(sw_servers)
-        if total_servers <= H:
-            if alloc*H <= total_servers:
-                system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
-                if system_avail > max_system_avail:
-                    max_system_avail = system_avail
-                    best_redundancy = redundancy
-    if best_redundancy is not None:
-        r_unav.append(1 - max_system_avail)
-        best_reds.append(best_redundancy)
-        best_comb.append(comb)
+def search_best_redundancy(all_combinations):
+    p_results = []
 
-    return r_unav, best_reds, best_comb
+    for comb in all_combinations:
+        num_software = len(comb)
+
+        sw_redundancies = generate_redundancy_combinations(num_software, max_redundancy)
+        max_system_avail = -1
+        best_redundancy = None
+
+        # software_availability の計算をループ外に移動
+        software_availability = [calc_software_av_for_red(group, service_avail, SERVICES)*server_avail for group in comb]
+        sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+
+        for redundancy in sw_redundancies:
+            red_array = np.array(redundancy)
+            sw_red_resource = sw_resource * red_array
+            total_servers = np.sum(sw_red_resource)
+            if total_servers <= H:
+                if alloc <= total_servers:
+                    # 最適化されたsystem_avail計算
+                    system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
+                    if system_avail > max_system_avail:
+                        max_system_avail = system_avail
+                        best_redundancy = redundancy
+
+        if best_redundancy:
+            p_results.append((comb, best_redundancy, max_system_avail))
+
+    return p_results
 
 
-def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H, service):
+def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H):
     best_RUEs = [-np.inf]*num_next
     best_matrices = [None]*num_next
     best_counts = [0]*num_next
@@ -257,75 +257,69 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
 
 
 # 使用例
-r_adds = [0.5,1,1.5]  # 例としてr_add値
+r_adds = [1]  # 例としてr_add値
 num_service = 10 #サービス数
+SERVICES = [i for i in range(1,num_service+1)]
 service_avail = [0.99]*num_service # サービス可用性の例
 #service_avail = [0.99,0.99,0.99,0.9,0.99,0.99,0.99,0.99,0.9,0.99]
 server_avail = 0.99  # サーバー可用性の例
-Resources = [20]  # 最大サーバー制約の例
+Resources = [25]  # 最大サーバー制約の例
 max_redundancy = 5 #1つのSWの冗長化度合い上限
 num_starts = 50
 num_next = 10 #何個を冗長化するか
-alloc = 0.9
 
+average = 1
 GENERATION = 10
 
 time_list = []
 unav_list = []
 
+
 for r_add in r_adds:
     for H in Resources:
         mean_time = []
-        mean_unav = [] 
-        
-        for i in range(5): #何回の平均をとるか
+        mean_unav = []
+        alloc = 0.95*H
+
+        for i in range(average): #何回の平均をとるか
                 
             start = time.time()
             #fig, ax = plt.subplots(figsize=(12, 8))
             best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, num_service,num_starts)
 
-            plt.xlabel("Generation")
-            plt.ylabel("RCE")
-            plt.title(f"r_add = {r_add}, Resource = {H}")
             
-            #plt.show()
-            #plt.savefig(f"RCE-Greedy_{r_add}-{H}.png", bbox_inches='tight', pad_inches=0)
-            #print(f"r_add = {r_add}, Resource = {H}")
+            min_unav = []
             
-            result_unav = []
-            result_red = []
-            result_comb = []
             
-            """for i in range(num_next):
-                print(f"Best Matrix:\n{best_matrix[i]}")
-                print(f"Best Software Count: {best_software_count[i]}")
-                print(f"Best RCE: {best_RUE[i]}")"""
-            
-            for p in range(num_next):
-                if best_matrix[p] is not None:
-                    comb_sum = np.sum(best_matrix[p], axis=1)
-                    sw_redundancies = generate_redundancy_combinations(best_software_count[p], H, r_add)
-                    unav, red, comb = search_best_redundancy(best_matrix[p], sw_redundancies)
-                    result_unav.append(unav)
-                    result_comb.append(comb)
-                    result_red.append(red)
-            min_unav = min(result_unav)
-            opti_idx = result_unav.index(min_unav)
-            opti_comb = result_comb[opti_idx]
-            opti_red = result_red[opti_idx]
+            best_combinations = []
+            for p in best_matrix:
+                if p is not None:
+                    # 1の位置を探す
+                    rows, cols = np.nonzero(p)
+                    # 行と列のペアを作成
+                    positions = [[col + 1 for col in cols[rows == row]] for row in np.unique(rows)]
+                    best_combinations.append(positions)
+        
+            result = search_best_redundancy(best_combinations)
+
+
+            max_avails = [max_avail for _, _, max_avail in result]
+            min_unav.append(1-max(max_avails))
             end = time.time()
             
             time_diff = end - start  # 処理完了後の時刻から処理開始前の時刻を減算する
-            print(f"time = {time_diff}")  # 処理にかかった時間データを使用
             
             mean_time.append(time_diff)
             mean_unav.append(min_unav)
+        print(mean_unav)
         time_list.append(sum(mean_time)/len(mean_time))
         unav_list.append(np.sum(mean_unav)/len(mean_unav))
         
 print("result")
 for i in range(len(r_adds)*len(Resources)):
-    print(f"time = {time_list[i]}")
+    print(time_list[i])
 for i in range(len(r_adds)*len(Resources)):
-    print(f"unav = {unav_list[i]}")
+    print(unav_list[i])
+
+
         
