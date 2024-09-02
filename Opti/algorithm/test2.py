@@ -118,14 +118,22 @@ def search_best_redundancy(comb, all_redundancy): #all_combinationsは
     best_reds = []
     best_comb = []
     max_system_avail = -1
-    best_redundancy = None
-    sw = len(comb)
-    sum_comb = [(r_add*(sum(comb[i])-1))+1 for i in range(sw)]
+    best_redundancy = 0
+    sum_matrix = np.sum(comb,axis=1)
+    sum_comb = (r_add*(sum_matrix-1))+1
+    sum_comb = np.array(sum_comb)
     services_in_sw = np.sum(comb,axis=1)
-    print(services_in_sw)
     software_availability = calc_software_av(services_in_sw, service_avail, server_avail)
-    for r in all_redundancy:
+    
+    for r in all_redundancy[::-1]:
         redundancy = np.array(r)
+        redundancy_comb_compare = redundancy < best_redundancy
+        if redundancy_comb_compare.all():
+            #print(best_redundancy)
+            r_unav.append(1 - max_system_avail)
+            best_reds.append(best_redundancy)
+            best_comb.append(comb)
+            return r_unav, best_reds, best_comb
         sw_servers = [redundancy @ sum_comb]
         total_servers = np.sum(sw_servers)
         if total_servers <= H:
@@ -150,7 +158,6 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
     list = []
     best_matrix = matrix.copy()
     best_RUE = calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H)
-    print(best_RUE)
 
     for k in range(GENERATION):
         RUE_list = [best_RUE]
@@ -182,7 +189,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
             matrix_list.append(two)
 
         new_RUE = max(mini_RUE_list)
-        idx = mini_RUE_list.index(best_RUE)
+        idx = mini_RUE_list.index(new_RUE)
         new_matrix = matrix_list[idx]
         RUE_list.append(new_RUE)
 
@@ -250,14 +257,14 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H,
 
 
 # 使用例
-r_adds = [1.5]  # 例としてr_add値
+r_adds = [0.5,1,1.5]  # 例としてr_add値
 num_service = 10 #サービス数
 service_avail = [0.99]*num_service # サービス可用性の例
 #service_avail = [0.99,0.99,0.99,0.9,0.99,0.99,0.99,0.99,0.9,0.99]
 server_avail = 0.99  # サーバー可用性の例
-Resources = [25]  # 最大サーバー制約の例
+Resources = [20]  # 最大サーバー制約の例
 max_redundancy = 5 #1つのSWの冗長化度合い上限
-num_starts = 30
+num_starts = 50
 num_next = 10 #何個を冗長化するか
 alloc = 0.9
 
@@ -271,10 +278,10 @@ for r_add in r_adds:
         mean_time = []
         mean_unav = [] 
         
-        for i in range(1): #何回の平均をとるか
+        for i in range(5): #何回の平均をとるか
                 
             start = time.time()
-            fig, ax = plt.subplots(figsize=(12, 8))
+            #fig, ax = plt.subplots(figsize=(12, 8))
             best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, num_service,num_starts)
 
             plt.xlabel("Generation")
