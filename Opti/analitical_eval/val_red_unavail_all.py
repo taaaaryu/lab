@@ -2,7 +2,6 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations, chain, product
-from numba import njit
 # パラメータ
 Resource = [15,20,25]  # サーバリソース
 h_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
@@ -58,6 +57,7 @@ for r_add in h_adds:
         for num_software in softwares:
             all_combinations = generate_service_combinations(services, num_software)
             all_redundancies = generate_redundancy_combinations(num_software)
+            
 
             # サービス実装形態によるCDFの計算
             p_results = []

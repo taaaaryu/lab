@@ -83,6 +83,7 @@ for H in Resourse:
         for num_software in softwares:
             all_combinations = generate_service_combinations(services, num_software)
             sw_redundancies = generate_redundancy_combinations(num_software, H, h_add)
+            print(len(sw_redundancies))
             for comb in all_combinations:
                 max_system_avail = None
                 total_servers = sum((h_add*(len(comb[i])-1)+1) for i in range(len(comb)))

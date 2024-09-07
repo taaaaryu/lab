@@ -4,8 +4,8 @@ import numpy as np
 from itertools import combinations, chain, product
 import random
 # パラメータ
-Resource = [15,20,25]  # サーバリソース
-r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+Resource = [20]  # サーバリソース
+r_adds= [1]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
@@ -15,10 +15,10 @@ services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-NUM_START = [30,50,70]
-NUM_NEXT = [5,10,15]
+NUM_START = [50]
+NUM_NEXT = [5]
 GENERATION = 10
-average = 5
+average = 1
 
 max_redundancy = 5
 
@@ -103,7 +103,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
         one_list.append(len(matrix[0]))
         one_list.insert(0, 0)
 
-        if software_count <= 9:
+        if software_count <= n-1:
             new_sw_p_matrix = divide_sw(matrix, one_list)
             new_RUE_p = calc_RUE(new_sw_p_matrix, len(new_sw_p_matrix), service_avail, server_avail, r_add, H)
             RUE_list.append(new_RUE_p)
@@ -190,7 +190,7 @@ def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, num_s
     x_gene = np.arange(1, GENERATION + 1)
     service = np.arange(1, num_service)
     software_count_float = np.random.normal(num_service / 2, 2, num_starts)
-    software_counts = np.clip(software_count_float.astype(int), 1, 10)
+    software_counts = np.clip(software_count_float.astype(int), 1, n)
 
     for software_count in software_counts:
         matrix = make_matrix(service, software_count)
@@ -260,12 +260,11 @@ def find_ones(matrix):
     
     return positions
 
-unav_list = []
-time_list = []
 
 for num_starts in NUM_START:
     for num_next in NUM_NEXT:
-                
+        unav_list = []
+        time_list = []
         for r_add in r_adds:
             for H in Resource:
                 alloc = H*0.9  #サーバリソースの下限
@@ -313,6 +312,7 @@ for num_starts in NUM_START:
                         if best_redundancy:
                             p_results.append((comb, best_redundancy, max_system_avail))
                             max_avails = [max_avail for _, _, max_avail in p_results]
+                            print(p_results)
                             placement_result.append(max(max_avails))
                     end = time.time()
                     
