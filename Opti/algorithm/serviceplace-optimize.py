@@ -4,21 +4,21 @@ import numpy as np
 from itertools import combinations, chain, product
 import random
 # パラメータ
-Resource = [20]  # サーバリソース
-r_adds= [1]  # サービス数が1増えるごとに使うサーバ台数の増加
+Resource = [30]  # サーバリソース
+r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-n = 10  # サービス数
+n = 15  # サービス数
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 NUM_START = [50]
-NUM_NEXT = [5]
+NUM_NEXT = [10]
 GENERATION = 10
-average = 1
+average = 3
 
 max_redundancy = 5
 
@@ -29,6 +29,8 @@ def calc_software_av(services_group, service_avail,services):
     for i in indices:
         result *= service_avail[i]
     return result
+
+
 
 def calc_software_av_matrix(services_in_sw, service_avail, server_avail):
     services_array = np.array(services_in_sw, dtype=int)
@@ -41,6 +43,7 @@ def calc_software_av_matrix(services_in_sw, service_avail, server_avail):
             count += 1
         sw_avail_list.append(sw_avail*server_avail)
     return sw_avail_list
+
 
 def generate_service_combinations(services, num_software):
     all_combinations = []
@@ -263,6 +266,7 @@ def find_ones(matrix):
 
 for num_starts in NUM_START:
     for num_next in NUM_NEXT:
+        print(num_next)
         unav_list = []
         time_list = []
         for r_add in r_adds:
@@ -312,15 +316,15 @@ for num_starts in NUM_START:
                         if best_redundancy:
                             p_results.append((comb, best_redundancy, max_system_avail))
                             max_avails = [max_avail for _, _, max_avail in p_results]
-                            print(p_results)
                             placement_result.append(max(max_avails))
+                        #print(p_results)
                     end = time.time()
                     
                     time_diff = end - start
-                
+
                     time_mean.append(time_diff)
                     unav_mean.append(1-max(placement_result))
-
+                    
                 time_list.append(sum(time_mean)/len(time_mean))
                 unav_list.append(np.sum(unav_mean)/len(unav_mean))
                 

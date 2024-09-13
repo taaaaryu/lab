@@ -1,13 +1,14 @@
 import time
 import matplotlib.pyplot as plt
+import math
 import numpy as np
 from itertools import combinations, chain, product
 import ast
 import time
 
 # Parameters
-Resourse = [20]  # Server resource
-h_adds = [1]  # Increment in server count per additional service
+Resourse = [15,20,25]  # Server resource
+h_adds = [0.5,1,1.5]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
@@ -83,13 +84,12 @@ for H in Resourse:
         for num_software in softwares:
             all_combinations = generate_service_combinations(services, num_software)
             sw_redundancies = generate_redundancy_combinations(num_software, H, h_add)
-            print(len(sw_redundancies))
             for comb in all_combinations:
                 max_system_avail = None
                 total_servers = sum((h_add*(len(comb[i])-1)+1) for i in range(len(comb)))
                 if total_servers <= H:
                     software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-                    system_avail = np.prod([sa for sa in software_availability])
+                    system_avail = (1-np.prod([sa for sa in software_availability]))
                     
                     # Set initial redundancy to 1 for all and then increase for one software
                     initial_redundancy = [1] * len(comb)
@@ -100,8 +100,8 @@ for H in Resourse:
                         total_servers_red = sum(initial_redundancy[j] * ((h_add*(len(comb[j])-1))+1) for j in range(len(comb)))
                         if total_servers_red <= H:   
                             software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-                            system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
-                            redundancy_cost_efficiency.append((system_avail_red - system_avail) / (total_servers_red - total_servers))
+                            system_avail_red = (1-np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)]))
+                            redundancy_cost_efficiency.append((system_avail - system_avail_red) / (total_servers_red - total_servers))
                         else:
                             redundancy_cost_efficiency.append(0)
                         initial_redundancy[i] = 1  # Reset to 1
@@ -150,7 +150,7 @@ for H in Resourse:
         ax.set_yscale('log')
 
         ax.legend()
-        #plt.show()
         fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
-        #plt.savefig(f"RCE-Unavail_{h_add}-{H}.png", bbox_inches='tight', pad_inches=0)
+        
+        plt.savefig(f"RCE-Unavail-log_{h_add}-{H}.png", bbox_inches='tight', pad_inches=0)
         #print(h_add)

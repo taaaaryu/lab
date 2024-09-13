@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations, chain, product
 # パラメータ
-Resource = [15,20,25]  # サーバリソース
+Resource = [25]  # サーバリソース
 h_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-n = 10  # サービス数
+n = 12  # サービス数
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
@@ -39,7 +39,6 @@ def generate_service_combinations(services, num_software):
 
 def generate_redundancy_combinations(num_software):
     return product(range(1, max_redundancy), repeat=num_software)
-
 
 # プロットを作成
 fig, ax = plt.subplots(2,1,figsize=(12, 8))
@@ -87,6 +86,8 @@ for r_add in h_adds:
                     p_results.append((comb, best_redundancy, max_system_avail))
                     max_avails = [max_avail for _, _, max_avail in p_results]
                     placement_result.append(max(max_avails))
+                    max_idx =max_avails.index(max(max_avails))
+                    print(p_results[max_idx])
         end = time.time()
         
         time_diff = end - start
