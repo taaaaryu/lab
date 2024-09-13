@@ -5,7 +5,7 @@ from itertools import combinations, chain, product
 import ast
 
 # Parameters
-Resourse = [15,20,25]  # Server resource
+Resourse = [30]  # Server resource
 h_adds = [0.75]  # Increment in server count per additional service
 POP = 0.02  # Top combinations to consider
 
