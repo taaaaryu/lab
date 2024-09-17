@@ -5,11 +5,11 @@ from itertools import combinations, chain, product
 import random
 # パラメータ
 Resource = [30]  # サーバリソース
-r_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(10,12)]  # サービス数
+num_service = [i for i in range(11,13)]  # サービス数
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 NUM_START = 100
@@ -313,8 +313,6 @@ for n in num_service:
                     # software_availability の計算をループ外に移動
                     software_availability = [calc_software_av(group, service_avail, services)*server_avail for group in comb]
                     sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
-                    print(comb,sw_resource)
-
                     best_redundancy, best_resource, system_av = Greedy_Redundancy(software_availability,sw_resource)
 
                     result_redundancy.append(best_redundancy)
@@ -328,9 +326,9 @@ for n in num_service:
                 time_mean.append(time_diff)
 
                 max_idx = result_availabililty.index(max(result_availabililty))
-                print(result_redundancy[max_idx],result_resource[max_idx])
+                #print(result_redundancy[max_idx],result_resource[max_idx])
                 unav_mean.append(1-max(result_availabililty))
-            print(unav_mean)
+            
             time_list.append(sum(time_mean)/len(time_mean))
             unav_list.append(np.sum(unav_mean)/len(unav_mean))
             

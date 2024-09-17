@@ -91,11 +91,11 @@ for n in num_service:
                         p_results.append((comb, best_redundancy, max_system_avail))
                         max_avails = [max_avail for _, _, max_avail in p_results]
                         placement_result.append(max(max_avails))
-                        print(p_results)
             end = time.time()
             
             time_diff = end - start
             
+
             time_list.append(time_diff)
             unav_list.append(1-max(placement_result))
     print(f"{n}-result")
