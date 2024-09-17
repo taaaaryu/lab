@@ -5,19 +5,19 @@ from itertools import combinations, chain, product
 import random
 # パラメータ
 Resource = [30]  # サーバリソース
-r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(11,16)]  # サービス数
+num_service = [i for i in range(10,12)]  # サービス数
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-NUM_START = 50
-NUM_NEXT = 10
+NUM_START = 100
+NUM_NEXT = 20
 GENERATION = 10
-average = 3
+average = 1
 
-max_redundancy = 5
+max_redundancy = 4
 
 # ソフトウェアの可用性を計算する関数
 def calc_software_av(services_group, service_avail,services):
@@ -26,8 +26,6 @@ def calc_software_av(services_group, service_avail,services):
     for i in indices:
         result *= service_avail[i]
     return result
-
-
 
 def calc_software_av_matrix(services_in_sw, service_avail, server_avail):
     services_array = np.array(services_in_sw, dtype=int)
@@ -41,7 +39,6 @@ def calc_software_av_matrix(services_in_sw, service_avail, server_avail):
         sw_avail_list.append(sw_avail*server_avail)
     return sw_avail_list
 
-
 def generate_service_combinations(services, num_software):
     all_combinations = []
     n = len(services)
@@ -50,12 +47,6 @@ def generate_service_combinations(services, num_software):
         combination = [services[split_indices[i] + 1: split_indices[i + 1] + 1] for i in range(len(split_indices) - 1)]
         all_combinations.append(combination)
     return all_combinations
-
-def generate_redundancy_combinations(num_software):
-    red_comb = []
-    for i in range(1,num_software+1):
-        red_comb.append(product(range(1, max_redundancy), repeat=i))
-    return red_comb
 
 def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H):
     best_RUEs = [-np.inf]*NUM_NEXT
@@ -260,16 +251,35 @@ def find_ones(matrix):
     
     return positions
 
-# 冗長化と可用性の計算を行う関数
-def calculate_redundancy_availability(args):
-    redundancy, sw_resource, H, alloc, software_availability = args
-    red_array = np.array(redundancy)
-    sw_red_resource = sw_resource * red_array
-    total_servers = np.sum(sw_red_resource)
-    if total_servers <= H and alloc <= total_servers:
-        system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
-        return system_avail, redundancy
-    return None
+
+def Greedy_Redundancy(sw_avail,sw_resource):
+    num_sw = len(sw_avail)
+    redundancy = [1]*num_sw
+    sum_Resource = np.sum(sw_resource)
+    sw_avail_sort=sw_avail
+    while sum_Resource<H:
+        
+        N,sw_resource,redundancy = zip(*sorted(zip(sw_avail_sort,sw_resource,redundancy))) #sw_availを基準にリソースもソート
+        redundancy = list(redundancy)
+        flag = 0
+        i=0
+        for i in range(num_sw):
+            if redundancy[i]>=max_redundancy:
+                continue
+            plus_resource = sw_resource[i]
+            if sum_Resource+plus_resource <=H:
+                redundancy[i]+=1
+                sum_Resource+=plus_resource
+                sw_avail_sort = [1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy)]
+                flag += 1
+                break
+        if flag == 0:
+            break
+    system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy)])
+    return redundancy,sum_Resource,system_av
+        
+
+
 
 for n in num_service:
     softwares = [i for i in range(1, n+1)]
@@ -279,7 +289,6 @@ for n in num_service:
     time_list = []
     for r_add in r_adds:
         for H in Resource:
-            alloc = 0  #サーバリソースの下限
             time_mean = []
             unav_mean = []
 
@@ -291,49 +300,37 @@ for n in num_service:
                 min_unav = []
                 
                 best_combinations = []
-                all_redundancies = generate_redundancy_combinations(n)
-                
 
                 for p in best_matrix:
                     if p is not None:
                         best_combinations.append(find_ones(p))
 
-                placement_result = []
-                p_results = []
+                result_resource = []
+                result_redundancy = []
+                result_availabililty = []
 
                 for comb in best_combinations:
-
-                    max_system_avail = -1
-                    best_redundancy = None
                     # software_availability の計算をループ外に移動
                     software_availability = [calc_software_av(group, service_avail, services)*server_avail for group in comb]
                     sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+                    print(comb,sw_resource)
 
-                    for redundancy in all_redundancies[len(comb)-1]:
-                        red_array = np.array(redundancy)
-                        sw_red_resource = sw_resource * red_array
-                        total_servers = np.sum(sw_red_resource)
-                        if total_servers <= H:
-                            if alloc <= total_servers:
-                                # 最適化されたsystem_avail計算
-                                system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
-                                if system_avail > max_system_avail:
-                                    max_system_avail = system_avail
-                                    best_redundancy = redundancy
+                    best_redundancy, best_resource, system_av = Greedy_Redundancy(software_availability,sw_resource)
 
-                    if best_redundancy:
-                        p_results.append((comb, best_redundancy, max_system_avail))
-                        max_avails = [max_avail for _, _, max_avail in p_results]
-                        placement_result.append(max(max_avails))
-                    #print(p_results)
-                    
+                    result_redundancy.append(best_redundancy)
+                    result_resource.append(best_resource)
+                    result_availabililty.append(system_av)
+
                 end = time.time()
                 
                 time_diff = end - start
 
                 time_mean.append(time_diff)
-                unav_mean.append(1-max(placement_result))
-                
+
+                max_idx = result_availabililty.index(max(result_availabililty))
+                print(result_redundancy[max_idx],result_resource[max_idx])
+                unav_mean.append(1-max(result_availabililty))
+            print(unav_mean)
             time_list.append(sum(time_mean)/len(time_mean))
             unav_list.append(np.sum(unav_mean)/len(unav_mean))
             

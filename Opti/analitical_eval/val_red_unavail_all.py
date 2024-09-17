@@ -4,11 +4,11 @@ import numpy as np
 from itertools import combinations, chain, product
 # パラメータ
 Resource = [30]  # サーバリソース
-h_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+h_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(5,16)]  # サービス数
+num_service = [i for i in range(10,12)]  # サービス数
 
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
@@ -49,9 +49,11 @@ for n in num_service:
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
     service_avail = [0.99]*n
+    unav_list = []
+    time_list = []
     for r_add in h_adds:
         for H in Resource:
-            alloc = H*0.95 #サーバリソースの下限
+            alloc = 0 #サーバリソースの下限
             start = time.time()
             placement_result = []
             
@@ -63,6 +65,7 @@ for n in num_service:
                 # サービス実装形態によるCDFの計算
                 p_results = []
                 for comb in all_combinations:
+                    print(comb)
                     num_software = len(comb)
 
                     max_system_avail = -1
@@ -78,24 +81,24 @@ for n in num_service:
                         sw_red_resource = sw_resource * red_array
                         total_servers = np.sum(sw_red_resource)
                         if total_servers <= H:
-                            if alloc <= total_servers:
                                 # 最適化されたsystem_avail計算
-                                system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
-                                if system_avail > max_system_avail:
-                                    max_system_avail = system_avail
-                                    best_redundancy = redundancy
+                            system_avail = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
+                            if system_avail > max_system_avail:
+                                max_system_avail = system_avail
+                                best_redundancy = redundancy
 
                     if best_redundancy:
                         p_results.append((comb, best_redundancy, max_system_avail))
                         max_avails = [max_avail for _, _, max_avail in p_results]
                         placement_result.append(max(max_avails))
+                        print(p_results)
             end = time.time()
             
             time_diff = end - start
-            print(f"time = {time_diff}")
             
             time_list.append(time_diff)
             unav_list.append(1-max(placement_result))
+    print(f"{n}-result")
     for i in range(len(h_adds)*len(Resource)):
         print(time_list[i])
     for i in range(len(h_adds)*len(Resource)):
