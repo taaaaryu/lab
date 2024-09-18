@@ -4,11 +4,11 @@ import numpy as np
 from itertools import combinations, chain, product
 # パラメータ
 Resource = [30]  # サーバリソース
-h_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+h_adds= [0.5,1]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(10,12)]  # サービス数
+num_service = [i for i in range(11,13)]  # サービス数
 
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
@@ -65,7 +65,6 @@ for n in num_service:
                 # サービス実装形態によるCDFの計算
                 p_results = []
                 for comb in all_combinations:
-                    print(comb)
                     num_software = len(comb)
 
                     max_system_avail = -1

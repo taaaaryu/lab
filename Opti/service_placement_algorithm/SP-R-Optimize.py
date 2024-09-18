@@ -5,15 +5,15 @@ from itertools import combinations, chain, product
 import random
 # パラメータ
 Resource = [30]  # サーバリソース
-r_adds= [1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(11,13)]  # サービス数
+num_service = [i for i in range(5,17)]  # サービス数
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 NUM_START = 100
-NUM_NEXT = 20
+NUM_NEXT = 30
 GENERATION = 10
 average = 1
 
@@ -251,33 +251,33 @@ def find_ones(matrix):
     
     return positions
 
-
+#各サービス実装形態が最適となる冗長化数を探る
 def Greedy_Redundancy(sw_avail,sw_resource):
     num_sw = len(sw_avail)
-    redundancy = [1]*num_sw
+    redundancy_list = [1]*num_sw
     sum_Resource = np.sum(sw_resource)
-    sw_avail_sort=sw_avail
+    sw_avail_list=sw_avail
+
     while sum_Resource<H:
-        
-        N,sw_resource,redundancy = zip(*sorted(zip(sw_avail_sort,sw_resource,redundancy))) #sw_availを基準にリソースもソート
-        redundancy = list(redundancy)
+        sw_avail_sort,sw_resource,redundancy,sw_avail = zip(*sorted(zip(sw_avail_list,sw_resource,redundancy_list,sw_avail))) #sw_availを基準にリソースもソート
+        redundancy_list = list(redundancy)
         flag = 0
         i=0
         for i in range(num_sw):
-            if redundancy[i]>=max_redundancy:
+            if redundancy_list[i]>=max_redundancy:
                 continue
             plus_resource = sw_resource[i]
-            if sum_Resource+plus_resource <=H:
-                redundancy[i]+=1
+            if (sum_Resource+plus_resource) <=H:
+                redundancy_list[i]+=1
                 sum_Resource+=plus_resource
-                sw_avail_sort = [1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy)]
+                sw_avail_list[i] = 1 - (1 - sw_avail[i]) ** int(redundancy_list[i])
                 flag += 1
                 break
         if flag == 0:
             break
-    system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy)])
+
+    system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
     return redundancy,sum_Resource,system_av
-        
 
 
 
