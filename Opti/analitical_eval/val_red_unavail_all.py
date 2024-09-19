@@ -8,7 +8,7 @@ h_adds= [0.5,1]  # サービス数が1増えるごとに使うサーバ台数の
 
 
 # 定数
-num_service = [i for i in range(11,13)]  # サービス数
+num_service = [i for i in range(5,17)]  # サービス数
 
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
@@ -56,6 +56,7 @@ for n in num_service:
             alloc = 0 #サーバリソースの下限
             start = time.time()
             placement_result = []
+            answer=[]
             
             for num_software in softwares:
                 all_combinations = generate_service_combinations(services, num_software)
@@ -89,11 +90,17 @@ for n in num_service:
                     if best_redundancy:
                         p_results.append((comb, best_redundancy, max_system_avail))
                         max_avails = [max_avail for _, _, max_avail in p_results]
+                        max_idx = max_avails.index(max(max_avails))
+                        answer.append(p_results[max_idx])
                         placement_result.append(max(max_avails))
+            a = max(placement_result)
+            a_idx = placement_result.index(a)
+
             end = time.time()
             
             time_diff = end - start
             
+            print(answer[a_idx])
 
             time_list.append(time_diff)
             unav_list.append(1-max(placement_result))
