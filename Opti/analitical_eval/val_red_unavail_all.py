@@ -4,11 +4,11 @@ import numpy as np
 from itertools import combinations, chain, product
 # パラメータ
 Resource = [30]  # サーバリソース
-h_adds= [0.5,1]  # サービス数が1増えるごとに使うサーバ台数の増加
+h_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(5,17)]  # サービス数
+num_service = [i for i in range(11,12)]  # サービス数
 
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
@@ -36,7 +36,7 @@ def generate_service_combinations(services, num_software):
 # 冗長化の組み合わせを生成する関数
 
 def generate_redundancy_combinations(num_software):
-    return product(range(1, max_redundancy), repeat=num_software)
+    return list(product(range(1, max_redundancy), repeat=num_software))
 
 # プロットを作成
 fig, ax = plt.subplots(2,1,figsize=(12, 8))
@@ -61,14 +61,12 @@ for n in num_service:
             for num_software in softwares:
                 all_combinations = generate_service_combinations(services, num_software)
                 all_redundancies = generate_redundancy_combinations(num_software)
-                
 
                 # サービス実装形態によるCDFの計算
                 p_results = []
                 for comb in all_combinations:
-                    num_software = len(comb)
 
-                    max_system_avail = -1
+                    max_system_avail = 0
                     best_redundancy = None
 
                     # software_availability の計算をループ外に移動
@@ -79,6 +77,7 @@ for n in num_service:
                     for redundancy in all_redundancies:
                         red_array = np.array(redundancy)
                         sw_red_resource = sw_resource * red_array
+                        #print(sw_red_resource,comb)
                         total_servers = np.sum(sw_red_resource)
                         if total_servers <= H:
                                 # 最適化されたsystem_avail計算
@@ -86,21 +85,23 @@ for n in num_service:
                             if system_avail > max_system_avail:
                                 max_system_avail = system_avail
                                 best_redundancy = redundancy
-
-                    if best_redundancy:
+                    if best_redundancy is not None:
                         p_results.append((comb, best_redundancy, max_system_avail))
                         max_avails = [max_avail for _, _, max_avail in p_results]
                         max_idx = max_avails.index(max(max_avails))
                         answer.append(p_results[max_idx])
                         placement_result.append(max(max_avails))
-            a = max(placement_result)
-            a_idx = placement_result.index(a)
+                    else:
+                        continue
+                        
+                a = max(placement_result)
+                a_idx = placement_result.index(a)
+                print(answer[a_idx])
 
             end = time.time()
             
             time_diff = end - start
             
-            print(answer[a_idx])
 
             time_list.append(time_diff)
             unav_list.append(1-max(placement_result))
