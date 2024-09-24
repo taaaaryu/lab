@@ -9,7 +9,7 @@ Resource = [30]  # サーバリソース
 h_adds = [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-num_service = [i for i in range(5, 12)]  # サービス数
+num_service = [i for i in range(14, 16)]  # サービス数
 server_avail = 0.99
 max_redundancy = 5
 

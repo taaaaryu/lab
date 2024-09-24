@@ -4,18 +4,19 @@ import numpy as np
 from itertools import combinations, chain, product
 import random
 # パラメータ
-Resource = [200]  # サーバリソース
-r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+Resource = [30]  # サーバリソース
+r_adds= [1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [100]  # サービス数
+START_SERVICE = 5
+num_service = [i for i in range(START_SERVICE,16)]  # サービス数
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 NUM_START = 100
 NUM_NEXT = 30
 GENERATION = 10
-average = 5
+average = 1000
 
 max_redundancy = 4
 
@@ -280,13 +281,13 @@ def Greedy_Redundancy(sw_avail,sw_resource):
     return redundancy,sum_Resource,system_av
 
 
-
+time_results = []
+unav_results = []
 for n in num_service:
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
     service_avail = [0.99]*n
-    unav_list = []
-    time_list = []
+
     for r_add in r_adds:
         for H in Resource:
             time_mean = []
@@ -321,23 +322,57 @@ for n in num_service:
 
                 end = time.time()
                 
-                time_diff = end - start
-
-                time_mean.append(time_diff)
+                time_diff = end - start         
 
                 max_idx = result_availabililty.index(max(result_availabililty))
                 #print(best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
-                unav_mean.append(1-max(result_availabililty))
-            
-            time_list.append(sum(time_mean)/len(time_mean))
-            unav_list.append(np.sum(unav_mean)/len(unav_mean))
-            
-    print(f"{n}-result")
-    print("time")
-    for i in range(len(r_adds)*len(Resource)):
-        print(time_list[i])
-    print("unav")
-    for i in range(len(r_adds)*len(Resource)):
-        print(unav_list[i])
+                time_mean.append(time_diff)
+                unav_mean.append(1 - max(result_availabililty))
+
+    time_results.append(time_mean)
+    unav_results.append(unav_mean)
+
+       # Plotting
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 16))
+
+# Unavailability plot
+x = num_service
+x_ticks = [i-START_SERVICE for i in x]
+y = [np.mean(unav_results[k]) for k in x_ticks]
+yerr = [np.std(unav_results[k]) for k in x_ticks]
+
+ax1.bar(x, y, yerr=yerr, capsize=5, alpha=0.7)
+ax1.set_xlabel('Number of Services')
+ax1.set_ylabel('Unavailability (1 - Availability)')
+ax1.set_title(f'Mean Unavailability with Standard Deviation r_add={r_add}, Resource={H}')
+ax1.set_yscale("log")
+ax1.grid(True, linestyle='--', alpha=0.7)
+
+# Execution time plot
+y_time = [np.mean(time_results[k]) for k in x_ticks]
+yerr_time = [np.std(time_results[k]) for k in x_ticks]
+
+ax2.bar(x, y_time, yerr=yerr_time, capsize=5, alpha=0.7)
+ax2.set_xlabel('Number of Services')
+ax2.set_ylabel('Execution Time (seconds)')
+ax2.set_title(f'Mean Execution Time with Standard Deviation r_add={r_add}, Resource={H}')
+ax2.grid(True, linestyle='--', alpha=0.7)
+
+plt.tight_layout()
+plt.savefig(f'1000avr_unavailability_and_time_results_{r_add}_{H}.png')
+plt.show()
+
+# Print numerical results
+print("Unavailability Results:")
+for n in x_ticks:
+    mean = np.mean(unav_results[n])
+    std = np.std(unav_results[n])
+    print(f"Services: {n}, Mean: {mean:.6f}, Std Dev: {std:.6f}")
+
+print("\nExecution Time Results:")
+for n in x_ticks:
+    mean = np.mean(time_results[n])
+    std = np.std(time_results[n])
+    print(f"Services: {n}, Mean: {mean:.2f}s, Std Dev: {std:.2f}s")
 
 

@@ -4,11 +4,11 @@ import numpy as np
 from itertools import combinations, chain, product
 # パラメータ
 Resource = [30]  # サーバリソース
-h_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+h_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(11,12)]  # サービス数
+num_service = [i for i in range(5,17)]  # サービス数
 
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
@@ -93,10 +93,11 @@ for n in num_service:
                         placement_result.append(max(max_avails))
                     else:
                         continue
+                    
                         
-                a = max(placement_result)
-                a_idx = placement_result.index(a)
-                print(answer[a_idx])
+            a = max(placement_result)
+            a_idx = placement_result.index(a)
+            #print(answer[a_idx])
 
             end = time.time()
             
