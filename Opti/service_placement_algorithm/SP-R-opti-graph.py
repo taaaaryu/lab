@@ -5,7 +5,7 @@ from itertools import combinations, chain, product
 import random
 # パラメータ
 Resource = [30]  # サーバリソース
-r_adds= [1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
@@ -16,7 +16,7 @@ server_avail = 0.99
 NUM_START = 100
 NUM_NEXT = 30
 GENERATION = 10
-average = 1000
+average = 10
 
 max_redundancy = 4
 
@@ -332,7 +332,7 @@ for n in num_service:
     time_results.append(time_mean)
     unav_results.append(unav_mean)
 
-       # Plotting
+"""
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 16))
 
 # Unavailability plot
@@ -361,18 +361,20 @@ ax2.grid(True, linestyle='--', alpha=0.7)
 plt.tight_layout()
 plt.savefig(f'1000avr_unavailability_and_time_results_{r_add}_{H}.png')
 plt.show()
+"""
+
 
 # Print numerical results
 print("Unavailability Results:")
-for n in x_ticks:
+for n in range(len(unav_results)):
     mean = np.mean(unav_results[n])
     std = np.std(unav_results[n])
-    print(f"Services: {n}, Mean: {mean:.6f}, Std Dev: {std:.6f}")
+    print(f"Services: {START_SERVICE+n}, Mean: {mean:.6f}, Std Dev: {std:.6f}")
 
 print("\nExecution Time Results:")
-for n in x_ticks:
+for n in range(len(unav_results)):
     mean = np.mean(time_results[n])
     std = np.std(time_results[n])
-    print(f"Services: {n}, Mean: {mean:.2f}s, Std Dev: {std:.2f}s")
+    print(f"Services: {START_SERVICE+n}, Mean: {mean:.2f}s, Std Dev: {std:.2f}s")
 
 

@@ -1,6 +1,6 @@
 import time
 import matplotlib.pyplot as plt
-import numpy as np
+import cupy as cp  # NumPyの代わりにCupyをインポート
 from itertools import combinations, chain, product
 from numba import njit
 
@@ -12,9 +12,6 @@ h_adds = [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台�
 num_service = [i for i in range(5, 15)]  # サービス数
 server_avail = 0.99
 max_redundancy = 5
-num_repeat = 5
-
-
 
 # ソフトウェアの可用性を計算する関数
 @njit
@@ -46,12 +43,9 @@ def calc_system_availability(software_availability, redundancy):
         system_avail *= (1 - (1 - sa) ** int(r))
     return system_avail
 
-
-
 software_result = []
 unav_list = []
 time_list = []
-
 
 for n in num_service:
     softwares = [i for i in range(1, n + 1)]
@@ -78,14 +72,14 @@ for n in num_service:
                     best_redundancy = None
 
                     # software_availability の計算をループ外に移動
-                    software_availability = np.array([calc_software_av(group, service_avail, services) * server_avail for group in comb])
-                    sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+                    software_availability = cp.array([calc_software_av(group, service_avail, services) * server_avail for group in comb])
+                    sw_resource = cp.array([r_add * (len(group) - 1) + 1 for group in comb])
 
                     # ここから最適な冗長化の探索を行う
                     for redundancy in all_redundancies:
-                        red_array = np.array(redundancy)
+                        red_array = cp.array(redundancy)
                         sw_red_resource = sw_resource * red_array
-                        total_servers = np.sum(sw_red_resource)
+                        total_servers = cp.sum(sw_red_resource)
                         
                         if total_servers <= H:
                             # 最適化されたsystem_avail計算
