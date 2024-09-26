@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from itertools import product
 import time
 from numba import njit
-from line_profiler import LineProfiler
 
 
 def calc_software_av(services_in_sw, service_avail, server_avail):
