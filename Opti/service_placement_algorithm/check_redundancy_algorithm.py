@@ -5,17 +5,17 @@ from itertools import combinations, chain, product
 import random
 # パラメータ
 Resource = [30]  # サーバリソース
-r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [1]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(5,14)]  # サービス数
+num_service = [i for i in range(5,6)]  # サービス数
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 NUM_START = 100
 NUM_NEXT = 30
 GENERATION = 10
-average = 10
+average = 1
 
 max_redundancy = 4
 
@@ -298,56 +298,24 @@ for n in num_service:
 
             for i in range(average):
                 start = time.time()
-                    #fig, ax = plt.subplots(figsize=(12, 8))
-                best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, len(services),NUM_START)
-
-                min_unav = []
-                
-                best_combinations = []
-
-                for p in best_matrix:
-                    if p is not None:
-                        best_combinations.append(find_ones(p))
-
                 result_resource = []
                 result_redundancy = []
                 result_availabililty = []
                 result_calc=[]
-
-                for comb in best_combinations:
-                    # software_availability の計算をループ外に移動
-                    software_availability = [calc_software_av(group, service_avail, services)*server_avail for group in comb]
-                    sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
-                    best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(software_availability,sw_resource)
-
-                    result_redundancy.append(best_redundancy)
-                    result_resource.append(best_resource)
-                    result_availabililty.append(system_av)
-                    result_calc.append(num_calc)
-
-                end = time.time()
                 
-                time_diff = end - start
-
-                time_mean.append(time_diff)
                 
-                calc_mean.append(sum(result_calc))
 
-                max_idx = result_availabililty.index(max(result_availabililty))
-                #print(best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
-                unav_mean.append(1-max(result_availabililty))
-            
-            time_list.append(sum(time_mean)/len(time_mean))
-            unav_list.append(np.sum(unav_mean)/len(unav_mean))
-            
-   
-    print(f"{n}-result")
-    print("time")
-    for i in range(len(r_adds)*len(Resource)):
-        print(time_list[i])
-    print("unav")
-    for i in range(len(r_adds)*len(Resource)):
-        print(unav_list[i])
+                comb = np.array([[1],[2],[3],[4],[5],[6],[7],[8],[9],[10]])
+                n = len(comb)
+                softwares = [i for i in range(1, n+1)]
+                services = [i for i in range(1, n + 1)]
+                service_avail = [0.99]*n
+                # software_availability の計算をループ外に移動
+                software_availability = [calc_software_av(group, service_avail, services)*server_avail for group in comb]
+                sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+                best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(software_availability,sw_resource)
+                
+                print(best_redundancy,best_resource,system_av)
 
 
 
