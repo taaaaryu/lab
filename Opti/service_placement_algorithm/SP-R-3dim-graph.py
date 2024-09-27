@@ -3,26 +3,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations, chain, product
 import random
-# パラメータ
-Resource = [200]  # サーバリソース
-r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+from mpl_toolkits.mplot3d import Axes3D
 
+# パラメータ
+Resource = [30]  # サーバリソース
+r_adds= [1]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-START_SERVICE = 5
-#num_service = [i for i in range(START_SERVICE,16)]  # サービス数
-num_service = [100]  # サービス数
-#service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
+n = 10  # サービス数
 server_avail = 0.99
-NUM_START = 100
-NUM_NEXT = 30
 GENERATION = 10
 average = 10
-
 max_redundancy = 4
 
 # ソフトウェアの可用性を計算する関数
-def calc_software_av(services_group, service_avail,services):
+def calc_software_av(services_group, service_avail, services):
     indices = [services.index(s) for s in services_group]
     result = 1.0
     for i in indices:
@@ -50,7 +45,7 @@ def generate_service_combinations(services, num_software):
         all_combinations.append(combination)
     return all_combinations
 
-def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H):
+def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H, NUM_NEXT):
     best_RUEs = [-np.inf]*NUM_NEXT
     best_matrices = [None]*NUM_NEXT
     best_counts = [0]*NUM_NEXT
@@ -130,7 +125,6 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
 
                 
         if best_RUE > best_RUEs[0]:
-            # 新しいRUEが現在のトップよりも高い場合、他のRUEを下にシフトして、新しいRUEを最上位に挿入する
             for i in range(NUM_NEXT - 1, 0, -1):
                 best_RUEs[i] = best_RUEs[i - 1]
                 best_matrices[i] = best_matrices[i - 1]
@@ -142,7 +136,6 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
         else:
             for i in range(1, NUM_NEXT):
                 if best_RUE > best_RUEs[i]:
-                    # 指定した位置に新しいRUEを挿入し、他のRUEを下にシフトする
                     for j in range(NUM_NEXT - 1, i, -1):
                         best_RUEs[j] = best_RUEs[j - 1]
                         best_matrices[j] = best_matrices[j - 1]
@@ -163,7 +156,7 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
     sw_list = np.array(software_availability)
     system_avail = np.prod(sw_list)
     matrix_resource = r_add * (sum_matrix - 1) + 1
-    total_servers = np.dot(initial_redundancy, matrix_resource)  # dot product
+    total_servers = np.dot(initial_redundancy, matrix_resource)
 
     for i in range(software_count):
         initial_redundancy[i] += 1
@@ -171,23 +164,22 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
         total_servers_mask = total_servers_red <= H
         system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
         redundancy_cost_efficiency = np.where(total_servers_mask, (system_avail_red - system_avail) / (total_servers_red - total_servers), 0)
-        avg_efficiency.append(redundancy_cost_efficiency) # 1 corresponds to redundancy=2
+        avg_efficiency.append(redundancy_cost_efficiency)
         initial_redundancy[i] = 1
     return np.mean(avg_efficiency)
 
-def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, NUM_START):
+def multi_start_greedy(r_add, service_avail, server_avail, H, num_service, NUM_START, NUM_NEXT=5):
     best_global_matrices = [None] * NUM_NEXT
     best_global_RUEs = [-np.inf] * NUM_NEXT
     best_global_counts = [0] * NUM_NEXT
     RUE_list = []
-    x_gene = np.arange(1, GENERATION + 1)
     service = np.arange(1, num_service)
     software_count_float = np.random.normal(num_service / 2, 2, NUM_START)
     software_counts = np.clip(software_count_float.astype(int), 1, n)
 
     for software_count in software_counts:
         matrix = make_matrix(service, software_count)
-        best_matrices, best_counts, best_RUEs, RUE_each_list = greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
+        best_matrices, best_counts, best_RUEs, RUE_each_list = greedy_search(matrix, software_count, service_avail, server_avail, r_add, H, NUM_NEXT)
 
         RUE_list.append(RUE_each_list)
 
@@ -242,26 +234,21 @@ def integrate_sw(matrix, one_list):
     return new_matrix
 
 def find_ones(matrix):
-    # numpy配列に変換
     arr = np.array(matrix)
-    
-    # 1の位置を探す
     rows, cols = np.nonzero(arr)
-    
-    # 行ごとに1のある列インデックスをまとめる
     positions = [[col + 1 for col in cols[rows == row]] for row in np.unique(rows)]
-    
     return positions
 
-#各サービス実装形態が最適となる冗長化数を探る
-def Greedy_Redundancy(sw_avail,sw_resource):
+def Greedy_Redundancy(sw_avail, sw_resource,H):
     num_sw = len(sw_avail)
     redundancy_list = [1]*num_sw
     sum_Resource = np.sum(sw_resource)
     sw_avail_list=sw_avail
+    
+    calc = 0
 
     while sum_Resource<H:
-        sw_avail_sort,sw_resource,redundancy,sw_avail = zip(*sorted(zip(sw_avail_list,sw_resource,redundancy_list,sw_avail))) #sw_availを基準にリソースもソート
+        sw_avail_sort,sw_resource,redundancy,sw_avail = zip(*sorted(zip(sw_avail_list,sw_resource,redundancy_list,sw_avail)))
         redundancy_list = list(redundancy)
         flag = 0
         i=0
@@ -273,122 +260,84 @@ def Greedy_Redundancy(sw_avail,sw_resource):
                 redundancy_list[i]+=1
                 sum_Resource+=plus_resource
                 sw_avail_list[i] = 1 - (1 - sw_avail[i]) ** int(redundancy_list[i])
+                calc+=1
                 flag += 1
                 break
         if flag == 0:
             break
 
     system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
-    return redundancy,sum_Resource,system_av
+    return redundancy,sum_Resource,system_av,calc
 
-
-time_results = []
-unav_results = []
-for n in num_service:
+def optimize_parameters(r_adds, Resource, n, average):
+    num_start_range = range(10, 110, 10)
+    num_next_range = range(10, 110, 10)
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
     service_avail = [0.99]*n
 
     for r_add in r_adds:
         for H in Resource:
-            time_mean = []
-            unav_mean = []
+            availability_results = []
+            time_results = []
 
-            for i in range(average):
-                start = time.time()
-                    #fig, ax = plt.subplots(figsize=(12, 8))
-                best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, len(services),NUM_START)
+            for NUM_START in num_start_range:
+                for NUM_NEXT in num_next_range:
+                    time_mean = []
+                    unav_mean = []
 
-                min_unav = []
-                
-                best_combinations = []
+                    for i in range(average):
+                        start = time.time()
+                        best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, len(services), NUM_START, NUM_NEXT)
 
-                for p in best_matrix:
-                    if p is not None:
-                        best_combinations.append(find_ones(p))
+                        min_unav = []
+                        best_combinations = []
 
-                result_resource = []
-                result_redundancy = []
-                result_availabililty = []
+                        for p in best_matrix:
+                            if p is not None:
+                                best_combinations.append(find_ones(p))
 
-                for comb in best_combinations:
-                    # software_availability の計算をループ外に移動
-                    software_availability = [calc_software_av(group, service_avail, services)*server_avail for group in comb]
-                    sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
-                    best_redundancy, best_resource, system_av = Greedy_Redundancy(software_availability,sw_resource)
+                        result_availabililty = []
 
-                    result_redundancy.append(best_redundancy)
-                    result_resource.append(best_resource)
-                    result_availabililty.append(system_av)
+                        for comb in best_combinations:
+                            software_availability = [calc_software_av(group, service_avail, services) * server_avail for group in comb]
+                            sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+                            _, _, system_av, _ = Greedy_Redundancy(software_availability, sw_resource,H)
+                            result_availabililty.append(system_av)
 
-                end = time.time()
-                
-                time_diff = end - start         
+                        end = time.time()
+                        time_diff = end - start
 
-                max_idx = result_availabililty.index(max(result_availabililty))
-                #print(best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
-                time_mean.append(time_diff)
-                unav_mean.append(1 - max(result_availabililty))
+                        time_mean.append(time_diff)
+                        max_idx = result_availabililty.index(max(result_availabililty))
+                        unav_mean.append(1 - max(result_availabililty))
 
-            time_results.append(time_mean)
-            unav_results.append(unav_mean)
-                # Print numerical results
+                    avg_time = sum(time_mean) / len(time_mean)
+                    avg_unav = np.sum(unav_mean) / len(unav_mean)
 
-    print("\nExecution Time Results:")
-    for n in range(len(unav_results)):
-        mean = np.mean(time_results[n])
-        std = np.std(time_results[n])
-        print(f"Services: {n}, Mean: {mean:.2f} Std Dev: {std:.2f}")
-    print("Unavailability Results:")
-    for n in range(len(unav_results)):
-        mean = np.mean(unav_results[n])
-        std = np.std(unav_results[n])
-        print(f"Mean: {mean:.6f} Std Dev: {std:.6f}")
+                    availability_results.append((NUM_START, NUM_NEXT, avg_unav))
+                    time_results.append((NUM_START, NUM_NEXT, avg_time))
 
+            plot_3d_graph(availability_results, 'UnAvailability', r_add, H)
+            plot_3d_graph(time_results, 'Execution Time', r_add, H)
 
-"""
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 16))
+def plot_3d_graph(data, z_label, r_add, H):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
-# Unavailability plot
-x = num_service
-x_ticks = [i-START_SERVICE for i in x]
-y = [np.mean(unav_results[k]) for k in x_ticks]
-yerr = [np.std(unav_results[k]) for k in x_ticks]
+    x = [d[0] for d in data]
+    y = [d[1] for d in data]
+    z = [d[2] for d in data]
 
-ax1.bar(x, y, yerr=yerr, capsize=5, alpha=0.7)
-ax1.set_xlabel('Number of Services')
-ax1.set_ylabel('Unavailability (1 - Availability)')
-ax1.set_title(f'Mean Unavailability with Standard Deviation r_add={r_add}, Resource={H}')
-ax1.set_yscale("log")
-ax1.grid(True, linestyle='--', alpha=0.7)
+    ax.scatter(x, y, z, c='r', marker='o')
 
-# Execution time plot
-y_time = [np.mean(time_results[k]) for k in x_ticks]
-yerr_time = [np.std(time_results[k]) for k in x_ticks]
+    ax.set_xlabel('NUM_START')
+    ax.set_ylabel('NUM_NEXT')
+    ax.set_zscale('log')
+    ax.set_zlabel(z_label)
 
-ax2.bar(x, y_time, yerr=yerr_time, capsize=5, alpha=0.7)
-ax2.set_xlabel('Number of Services')
-ax2.set_ylabel('Execution Time (seconds)')
-ax2.set_title(f'Mean Execution Time with Standard Deviation r_add={r_add}, Resource={H}')
-ax2.grid(True, linestyle='--', alpha=0.7)
+    plt.title(f'{z_label} for r_add={r_add}, H={H}')
+    plt.show()
 
-plt.tight_layout()
-plt.savefig(f'1000avr_unavailability_and_time_results_{r_add}_{H}.png')
-plt.show()
-"""
-
-
-# Print numerical results
-print("Unavailability Results:")
-for n in range(len(unav_results)):
-    mean = np.mean(unav_results[n])
-    std = np.std(unav_results[n])
-    print(f"Services: {n}, Mean: {mean:.6f} Std Dev: {std:.6f}")
-
-print("\nExecution Time Results:")
-for n in range(len(unav_results)):
-    mean = np.mean(time_results[n])
-    std = np.std(time_results[n])
-    print(f"Services: {n}, Mean: {mean:.2f} Std Dev: {std:.2f}")
-
-
+# Call the optimization function
+optimize_parameters(r_adds, Resource, n, average)
