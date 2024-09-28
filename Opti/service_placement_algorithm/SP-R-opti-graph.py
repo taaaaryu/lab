@@ -4,14 +4,13 @@ import numpy as np
 from itertools import combinations, chain, product
 import random
 # パラメータ
-Resource = [200]  # サーバリソース
+Resource = [30]  # サーバリソース
 r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
 START_SERVICE = 5
-#num_service = [i for i in range(START_SERVICE,16)]  # サービス数
-num_service = [100]  # サービス数
+num_service = [i for i in range(START_SERVICE,14)]  # サービス数
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 NUM_START = 100
@@ -260,7 +259,7 @@ def Greedy_Redundancy(sw_avail,sw_resource):
     sum_Resource = np.sum(sw_resource)
     sw_avail_list=sw_avail
 
-    while sum_Resource<H:
+    while sum_Resource<=H:
         sw_avail_sort,sw_resource,redundancy,sw_avail = zip(*sorted(zip(sw_avail_list,sw_resource,redundancy_list,sw_avail))) #sw_availを基準にリソースもソート
         redundancy_list = list(redundancy)
         flag = 0
@@ -288,6 +287,8 @@ for n in num_service:
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
     service_avail = [0.99]*n
+    time_results = []
+    unav_results = []
 
     for r_add in r_adds:
         for H in Resource:
@@ -333,12 +334,12 @@ for n in num_service:
             time_results.append(time_mean)
             unav_results.append(unav_mean)
                 # Print numerical results
-
+    print(n)
     print("\nExecution Time Results:")
     for n in range(len(unav_results)):
         mean = np.mean(time_results[n])
         std = np.std(time_results[n])
-        print(f"Services: {n}, Mean: {mean:.2f} Std Dev: {std:.2f}")
+        print(f"Mean: {mean:.2f} Std Dev: {std:.2f}")
     print("Unavailability Results:")
     for n in range(len(unav_results)):
         mean = np.mean(unav_results[n])

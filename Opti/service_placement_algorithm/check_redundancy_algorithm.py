@@ -5,7 +5,7 @@ from itertools import combinations, chain, product
 import random
 # パラメータ
 Resource = [30]  # サーバリソース
-r_adds= [1]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
@@ -305,9 +305,8 @@ for n in num_service:
                 
                 
 
-                comb = np.array([[1],[2],[3],[4],[5],[6],[7],[8],[9],[10]])
-                n = len(comb)
-                softwares = [i for i in range(1, n+1)]
+                comb = np.array([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12, 13]],dtype=object)
+                n = 13
                 services = [i for i in range(1, n + 1)]
                 service_avail = [0.99]*n
                 # software_availability の計算をループ外に移動
@@ -315,7 +314,7 @@ for n in num_service:
                 sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
                 best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(software_availability,sw_resource)
                 
-                print(best_redundancy,best_resource,system_av)
+                print(best_redundancy,system_av)
 
 
 
