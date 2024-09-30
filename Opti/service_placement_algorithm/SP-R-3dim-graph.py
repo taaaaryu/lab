@@ -285,35 +285,39 @@ def optimize_parameters(r_adds, Resource, n, average):
                 for NUM_NEXT in num_next_range:
                     time_mean = []
                     unav_mean = []
+                    
+                    if NUM_NEXT > NUM_START:
+                        avg_time = 0
+                        avg_unav = 0
+                    else:
+                        for i in range(average):
+                            start = time.time()
+                            best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, len(services), NUM_START, NUM_NEXT)
 
-                    for i in range(average):
-                        start = time.time()
-                        best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, len(services), NUM_START, NUM_NEXT)
+                            min_unav = []
+                            best_combinations = []
 
-                        min_unav = []
-                        best_combinations = []
+                            for p in best_matrix:
+                                if p is not None:
+                                    best_combinations.append(find_ones(p))
 
-                        for p in best_matrix:
-                            if p is not None:
-                                best_combinations.append(find_ones(p))
+                            result_availabililty = []
 
-                        result_availabililty = []
+                            for comb in best_combinations:
+                                software_availability = [calc_software_av(group, service_avail, services) * server_avail for group in comb]
+                                sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+                                _, _, system_av, _ = Greedy_Redundancy(software_availability, sw_resource,H)
+                                result_availabililty.append(system_av)
 
-                        for comb in best_combinations:
-                            software_availability = [calc_software_av(group, service_avail, services) * server_avail for group in comb]
-                            sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
-                            _, _, system_av, _ = Greedy_Redundancy(software_availability, sw_resource,H)
-                            result_availabililty.append(system_av)
+                            end = time.time()
+                            time_diff = end - start
 
-                        end = time.time()
-                        time_diff = end - start
+                            time_mean.append(time_diff)
+                            max_idx = result_availabililty.index(max(result_availabililty))
+                            unav_mean.append(1 - max(result_availabililty))
 
-                        time_mean.append(time_diff)
-                        max_idx = result_availabililty.index(max(result_availabililty))
-                        unav_mean.append(1 - max(result_availabililty))
-
-                    avg_time = sum(time_mean) / len(time_mean)
-                    avg_unav = np.sum(unav_mean) / len(unav_mean)
+                        avg_time = sum(time_mean) / len(time_mean)
+                        avg_unav = np.sum(unav_mean) / len(unav_mean)
 
                     availability_results.append((NUM_START, NUM_NEXT, avg_unav))
                     time_results.append((NUM_START, NUM_NEXT, avg_time))
