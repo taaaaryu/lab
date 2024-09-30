@@ -13,7 +13,7 @@ r_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の�
 n = 10  # サービス数
 server_avail = 0.99
 GENERATION = 10
-average = 100
+average = 10
 max_redundancy = 4
 
 # ソフトウェアの可用性を計算する関数
@@ -322,19 +322,21 @@ def optimize_parameters(r_adds, Resource, n, average):
                     availability_results.append((NUM_START, NUM_NEXT, avg_unav))
                     time_results.append((NUM_START, NUM_NEXT, avg_time))
 
-            plot_3d_graph(availability_results, 'UnAvailability', r_add, H)
-            plot_3d_graph(time_results, 'Execution Time', r_add, H)
+            plot_2d_heatmap(availability_results, 'UnAvailability', r_add, H)
+            plot_2d_heatmap(time_results, 'Execution Time', r_add, H)
 
 
-def plot_3d_graph(data, z_label, r_add, H):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+def plot_2d_heatmap(data, z_label, r_add, H):
+    fig, ax = plt.subplots()
 
-    x = np.array([d[0] for d in data])
-    y = np.array([d[1] for d in data])
-    z = np.array([d[2] for d in data])
+    # Filter out data points where z (avg_unav) is 0
+    filtered_data = [d for d in data if d[2] != 0]
 
-    # Create a grid for the surface plot
+    x = np.array([d[0] for d in filtered_data])
+    y = np.array([d[1] for d in filtered_data])
+    z = np.array([d[2] for d in filtered_data])
+
+    # Create a grid for the heatmap
     X, Y = np.meshgrid(np.unique(x), np.unique(y))
     Z = np.zeros_like(X, dtype=float)
 
@@ -343,25 +345,13 @@ def plot_3d_graph(data, z_label, r_add, H):
         yi = np.where(np.unique(y) == y[i])[0][0]
         Z[yi, xi] = z[i]
 
-    # Normalize z values for color mapping
-    norm = plt.Normalize(min(z), max(z))
-    colors = plt.cm.viridis(norm(Z))
-
-    # Surface plot with color mapping
-    surf = ax.plot_surface(X, Y, Z, facecolors=colors, rstride=1, cstride=1, linewidth=0, antialiased=False)
+    # Plot heatmap
+    c = ax.pcolormesh(X, Y, Z, shading='auto', cmap='viridis')
+    fig.colorbar(c, ax=ax)
 
     ax.set_xlabel('NUM_START')
     ax.set_ylabel('NUM_NEXT')
-    ax.set_zscale('log')
-    ax.set_zlabel(z_label)
-
-    plt.title(f'{z_label} for r_add={r_add}, H={H}')
-    
-    # Add color bar
-    mappable = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
-    mappable.set_array(Z)
-    cbar = plt.colorbar(mappable, ax=ax, pad=0.1)
-    cbar.set_label(z_label)
+    ax.set_title(f'{z_label} for r_add={r_add}, H={H}')
 
     plt.show()
 
