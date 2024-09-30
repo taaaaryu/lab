@@ -9,7 +9,7 @@ Resource = [30]  # サーバリソース
 h_adds = [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-num_service = [i for i in range(5,14)]  # サービス数
+num_service = [i for i in range(13,14)]  # サービス数
 server_avail = 0.99
 max_redundancy = 5
 num_repeat = 3
@@ -104,7 +104,7 @@ for i in range(num_repeat):
                             
                 a = max(placement_result)
                 a_idx = placement_result.index(a) #可用性が最大となる組み合わせのインデックス
-                print(answer[a_idx])
+                #print(answer[a_idx])
 
                 end = time.time()
                 time_diff = end - start

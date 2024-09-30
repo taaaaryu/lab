@@ -348,6 +348,7 @@ for n in num_service:
 
 
 """
+# Plot results
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 16))
 
 # Unavailability plot
@@ -376,7 +377,6 @@ ax2.grid(True, linestyle='--', alpha=0.7)
 plt.tight_layout()
 plt.savefig(f'1000avr_unavailability_and_time_results_{r_add}_{H}.png')
 plt.show()
-"""
 
 
 # Print numerical results
@@ -391,5 +391,4 @@ for n in range(len(unav_results)):
     mean = np.mean(time_results[n])
     std = np.std(time_results[n])
     print(f"Services: {n}, Mean: {mean:.2f} Std Dev: {std:.2f}")
-
-
+"""
