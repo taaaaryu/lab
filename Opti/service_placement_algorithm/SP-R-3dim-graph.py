@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # パラメータ
 Resource = [30]  # サーバリソース
-r_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [1]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
 n = 10  # サービス数
@@ -314,10 +314,11 @@ def optimize_parameters(r_adds, Resource, n, average):
 
                             time_mean.append(time_diff)
                             max_idx = result_availabililty.index(max(result_availabililty))
-                            unav_mean.append(1 - max(result_availabililty))
+                            unav_mean.append(1-max(result_availabililty))
 
                         avg_time = sum(time_mean) / len(time_mean)
                         avg_unav = np.sum(unav_mean) / len(unav_mean)
+                        print(avg_unav)
 
                     availability_results.append((NUM_START, NUM_NEXT, avg_unav))
                     time_results.append((NUM_START, NUM_NEXT, avg_time))
