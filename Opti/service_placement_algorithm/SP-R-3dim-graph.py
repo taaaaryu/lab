@@ -7,13 +7,13 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # パラメータ
 Resource = [30]  # サーバリソース
-r_adds= [1]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [0.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
 n = 10  # サービス数
 server_avail = 0.99
 GENERATION = 10
-average = 10
+average = 100
 max_redundancy = 4
 
 # ソフトウェアの可用性を計算する関数
@@ -321,7 +321,51 @@ def optimize_parameters(r_adds, Resource, n, average):
             plot_3d_graph(availability_results, 'UnAvailability', r_add, H)
             plot_3d_graph(time_results, 'Execution Time', r_add, H)
 
+
 def plot_3d_graph(data, z_label, r_add, H):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    x = np.array([d[0] for d in data])
+    y = np.array([d[1] for d in data])
+    z = np.array([d[2] for d in data])
+
+    # Create a grid for the surface plot
+    X, Y = np.meshgrid(np.unique(x), np.unique(y))
+    Z = np.zeros_like(X, dtype=float)
+
+    for i in range(len(x)):
+        xi = np.where(np.unique(x) == x[i])[0][0]
+        yi = np.where(np.unique(y) == y[i])[0][0]
+        Z[yi, xi] = z[i]
+
+    # Normalize z values for color mapping
+    norm = plt.Normalize(min(z), max(z))
+    colors = plt.cm.viridis(norm(Z))
+
+    # Surface plot with color mapping
+    surf = ax.plot_surface(X, Y, Z, facecolors=colors, rstride=1, cstride=1, linewidth=0, antialiased=False)
+
+    ax.set_xlabel('NUM_START')
+    ax.set_ylabel('NUM_NEXT')
+    ax.set_zscale('log')
+    ax.set_zlabel(z_label)
+
+    plt.title(f'{z_label} for r_add={r_add}, H={H}')
+    
+    # Add color bar
+    mappable = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+    mappable.set_array(Z)
+    cbar = plt.colorbar(mappable, ax=ax, pad=0.1)
+    cbar.set_label(z_label)
+
+    plt.show()
+
+# Call the optimization function
+optimize_parameters(r_adds, Resource, n, average)
+
+"""
+    def plot_3d_graph(data, z_label, r_add, H):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -341,3 +385,5 @@ def plot_3d_graph(data, z_label, r_add, H):
 
 # Call the optimization function
 optimize_parameters(r_adds, Resource, n, average)
+    
+"""
