@@ -86,7 +86,7 @@ for H in Resourse:
 
 
 plt.title("number of combinations in service inplement" )
-plt.xlabel("number of service")
+plt.xlabel("number of Software")
 plt.ylabel("number of combinations")
 
 plt.legend()

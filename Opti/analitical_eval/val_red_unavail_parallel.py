@@ -5,14 +5,14 @@ from itertools import combinations, chain, product
 from numba import njit
 
 # パラメータ
-Resource = [30]  # サーバリソース
-h_adds = [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+
+h_adds = [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-num_service = [i for i in range(13,14)]  # サービス数
+num_service = [i for i in range(5,6)]  # サービス数
 server_avail = 0.99
 max_redundancy = 5
-num_repeat = 3
+num_repeat = 10
 
 
 # ソフトウェアの可用性を計算する関数
@@ -55,7 +55,9 @@ for i in range(num_repeat):
     for n in num_service:
         softwares = [i for i in range(1, n + 1)]
         services = [i for i in range(1, n + 1)]
+        #service_resource = [1] * n
         service_avail = [0.99] * n
+        Resource = [n*2]  # サーバリソース
         unav_list = []
         time_list = []
         
@@ -78,7 +80,8 @@ for i in range(num_repeat):
 
                         # software_availability の計算をループ外に移動
                         software_availability = np.array([calc_software_av(group, service_avail, services) * server_avail for group in comb])
-                        sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+                        sw_resource = np.array([len(group)*(r_add ** (len(group) - 1)) for group in comb])
+                        #print(sw_resource)
 
                         # ここから最適な冗長化の探索を行う
                         for redundancy in all_redundancies:

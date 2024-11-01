@@ -6,11 +6,11 @@ import random
 from mpl_toolkits.mplot3d import Axes3D
 
 # パラメータ
-Resource = [30]  # サーバリソース
-r_adds= [1]  # サービス数が1増えるごとに使うサーバ台数の増加
+Resource = [40]  # サーバリソース
+r_adds= [1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-n = 10  # サービス数
+n = 20  # サービス数
 server_avail = 0.99
 GENERATION = 10
 average = 10
@@ -318,7 +318,6 @@ def optimize_parameters(r_adds, Resource, n, average):
 
                         avg_time = sum(time_mean) / len(time_mean)
                         avg_unav = np.sum(unav_mean) / len(unav_mean)
-                        print(avg_unav)
 
                     availability_results.append((NUM_START, NUM_NEXT, avg_unav))
                     time_results.append((NUM_START, NUM_NEXT, avg_time))
@@ -355,6 +354,9 @@ def plot_2d_heatmap(data, z_label, r_add, H):
     ax.set_title(f'{z_label} for r_add={r_add}, H={H}')
 
     plt.show()
+
+    max_idx = np.argmin(z)
+    print(x[max_idx], y[max_idx], z[max_idx])
 
 # Call the optimization function
 optimize_parameters(r_adds, Resource, n, average)

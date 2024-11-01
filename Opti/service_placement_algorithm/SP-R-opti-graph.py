@@ -4,17 +4,18 @@ import numpy as np
 from itertools import combinations, chain, product
 import random
 # パラメータ
-Resource = [30]  # サーバリソース
+Resource = [40]  # サーバリソース
 r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
 START_SERVICE = 5
-num_service = [i for i in range(START_SERVICE,14)]  # サービス数
+#num_service = [i for i in range(START_SERVICE,14)]  # サービス数
+num_service = [20]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-NUM_START = 100
-NUM_NEXT = 30
+NUM_START = 40
+NUM_NEXT = 10
 GENERATION = 10
 average = 10
 

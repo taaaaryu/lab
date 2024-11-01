@@ -9,8 +9,8 @@ import ast
 import time
 
 # Parameters
-Resourse = [30]  # Server resource
-h_adds = [0.5,1,1.5]  # Increment in server count per additional service
+Resourse = [20]  # Server resource
+h_adds = [0.8,1,1.2]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
@@ -53,7 +53,8 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
         max_system_avail = -1
         best_redundancy = None
         for redundancy in each_redundancy:
-            total_servers = sum(redundancy[i] * ((h_add*(len(comb[i])-1))+1) for i in range(len(comb)))
+            total_servers = sum(redundancy[i] * (len(comb[i])*(h_add**(len(comb[i])-1))) for i in range(len(comb)))
+            #print(comb,total_servers)
             if total_servers <= H:
                 if alloc <= total_servers:
                     software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
@@ -146,7 +147,7 @@ for H in Resourse:
         #av_sy = [i / (len(av_sorted) - 1) for i in range(len(av_sorted))]
         #ax.plot(av_sorted, av_sy, label="System Availability After Redundancy", color="green", linestyle="--")
 
-        ax.set_title(f'H = {H}, r_add = {h_add} service = {n}', fontsize=14)
+        ax.set_title(f'H = {H}, r_add = {h_add}, service = {n}', fontsize=14)
         ax.set_xlabel("RCE", fontsize=12)
         ax.set_ylabel("Unavailability", fontsize=12)
         ax.set_yscale('log')

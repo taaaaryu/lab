@@ -4,16 +4,17 @@ import numpy as np
 from itertools import combinations, chain, product
 import random
 # パラメータ
-Resource = [30]  # サーバリソース
-r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+
+r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-num_service = [i for i in range(5,14)]  # サービス数
+#num_service = [i for i in range(5,14)]  # サービス数
+num_service = [20,40,60,80,100]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-NUM_START = 100
-NUM_NEXT = 30
+NUM_START = 10
+NUM_NEXT = 10
 GENERATION = 10
 average = 10
 
@@ -160,7 +161,7 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
     software_availability = calc_software_av_matrix(sum_matrix, service_avail, server_avail)
     sw_list = np.array(software_availability)
     system_avail = np.prod(sw_list)
-    matrix_resource = r_add * (sum_matrix - 1) + 1
+    matrix_resource = (r_add ** (sum_matrix - 1))*sum_matrix
     total_servers = np.dot(initial_redundancy, matrix_resource)  # dot product
 
     for i in range(software_count):
@@ -280,7 +281,7 @@ def Greedy_Redundancy(sw_avail,sw_resource):
             break
 
     system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
-    return redundancy,sum_Resource,system_av,calc
+    return redundancy_list,sum_Resource,system_av,calc
 
 
 
@@ -288,6 +289,7 @@ for n in num_service:
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
     service_avail = [0.99]*n
+    Resource = [n*2]  # サーバリソース
     unav_list = []
     time_list = []
     for r_add in r_adds:
@@ -317,7 +319,8 @@ for n in num_service:
                 for comb in best_combinations:
                     # software_availability の計算をループ外に移動
                     software_availability = [calc_software_av(group, service_avail, services)*server_avail for group in comb]
-                    sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+                    sw_resource = np.array([len(group)*(r_add ** (len(group) - 1)) for group in comb])
+                    #print(comb,sw_resource)
                     best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(software_availability,sw_resource)
 
                     result_redundancy.append(best_redundancy)
@@ -341,7 +344,7 @@ for n in num_service:
             unav_list.append(np.sum(unav_mean)/len(unav_mean))
             
    
-    print(f"{n}-result")
+    print(f"{n}-result, {NUM_START}")
     print("time")
     for i in range(len(r_adds)*len(Resource)):
         print(time_list[i])

@@ -12,7 +12,7 @@ h_add= 1  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-n = 10  # サービス数
+n = 6  # サービス数
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
@@ -112,11 +112,13 @@ for num_software in softwares:
     if len(results)>1 and len(placement_result)>1:
         # ラベルを追加
         placement_sx = sorted(placement_result)
-        placement_sy = [i / (N-1) for i in range(N)]
+        
 
         redundancy_sx = sorted(redundancy_result)
         print(redundancy_sx[:5])
         N = len(redundancy_sx)
+
+        placement_sy = [i / (N-1) for i in range(N)]
         redundancy_sy = [i / (N-1) for i in range(N)]
         """software_sx = sorted(software_result)
         print(software_result)
