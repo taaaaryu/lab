@@ -9,12 +9,13 @@ import ast
 import time
 
 # Parameters
-Resourse = [20]  # Server resource
-h_adds = [0.8,1,1.2]  # Increment in server count per additional service
+ # Server resource
+h_adds = [0.8]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
-n = 10  # Number of services
+n = 13  # Number of services
+Resourse = [n*3] 
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
@@ -89,7 +90,7 @@ for H in Resourse:
             sw_redundancies = generate_redundancy_combinations(num_software, H, h_add)
             for comb in all_combinations:
                 max_system_avail = None
-                total_servers = sum((h_add*(len(comb[i])-1)+1) for i in range(len(comb)))
+                total_servers = sum(len(comb[i])*(h_add ** (len(comb[i]) - 1)) for i in range(len(comb)))
                 if total_servers <= H:
                     software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
                     system_avail =(np.prod([sa for sa in software_availability]))
@@ -100,7 +101,8 @@ for H in Resourse:
                     
                     for i in range(len(comb)):
                         initial_redundancy[i] = 2
-                        total_servers_red = sum(initial_redundancy[j] * ((h_add*(len(comb[j])-1))+1) for j in range(len(comb)))
+                        total_servers_red = sum(initial_redundancy[j] * (len(comb[j])*(h_add ** (len(comb[j]) - 1))) for j in range(len(comb)))
+                        #print(total_servers_red)
                         if total_servers_red <= H:   
                             software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
                             system_avail_red = (np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)]))
@@ -126,7 +128,7 @@ for H in Resourse:
             p_max_RCE.append(max_pv)
             del placement_result_dict[max_pk]
 
-        a = int(len(p_rue)*POP)
+        a = 10
 
         unav, red, comb, before_red_RCE = search_best_redundancy(p_max_comb, all_red, p_max_RCE)
         
@@ -140,20 +142,20 @@ for H in Resourse:
 
 
         ax.plot(before_red_RCE, unav, label = "Unavailability - RCE")
-        plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"upper{POP*100}%")
+        plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"上位10個のRCE")
     
         # Add `av` values to the CDF plot
         #av_sorted = sorted([1-a for a in av],reverse=True)
         #av_sy = [i / (len(av_sorted) - 1) for i in range(len(av_sorted))]
         #ax.plot(av_sorted, av_sy, label="System Availability After Redundancy", color="green", linestyle="--")
 
-        ax.set_title(f'H = {H}, r_add = {h_add}, service = {n}', fontsize=14)
+        ax.set_title(f'r_add = {h_add}, service = {n}', fontsize=14)
         ax.set_xlabel("RCE", fontsize=12)
-        ax.set_ylabel("Unavailability", fontsize=12)
+        ax.set_ylabel("非可用性", fontsize=12)
         ax.set_yscale('log')
 
         ax.legend()
         #fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
         #plt.show()
-        plt.savefig(f"RCE-Unavail-log_{h_add}-{H}.png", bbox_inches='tight', pad_inches=0)
+        plt.savefig(f"RCE-Unavail-log_{h_add}.png", bbox_inches='tight', pad_inches=0)
         #print(h_add)

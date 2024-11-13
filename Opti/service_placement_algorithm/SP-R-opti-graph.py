@@ -4,17 +4,17 @@ import numpy as np
 from itertools import combinations, chain, product
 import random
 # パラメータ
-Resource = [40]  # サーバリソース
-r_adds= [0.5,1,1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
+
+r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
 START_SERVICE = 5
-#num_service = [i for i in range(START_SERVICE,14)]  # サービス数
-num_service = [20]
+num_service = [i for i in range(START_SERVICE,14)]  # サービス数
+#num_service = [20,40,60,80,100]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-NUM_START = 40
+NUM_START = 50
 NUM_NEXT = 10
 GENERATION = 10
 average = 10
@@ -279,12 +279,13 @@ def Greedy_Redundancy(sw_avail,sw_resource):
             break
 
     system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
-    return redundancy,sum_Resource,system_av
+    return redundancy_list,sum_Resource,system_av
 
 
 time_results = []
 unav_results = []
 for n in num_service:
+    Resource = [n*3]  # サーバリソース
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
     service_avail = [0.99]*n
@@ -316,7 +317,7 @@ for n in num_service:
                 for comb in best_combinations:
                     # software_availability の計算をループ外に移動
                     software_availability = [calc_software_av(group, service_avail, services)*server_avail for group in comb]
-                    sw_resource = np.array([r_add * (len(group) - 1) + 1 for group in comb])
+                    sw_resource = np.array([len(group)*(r_add ** (len(group) - 1)) for group in comb])
                     best_redundancy, best_resource, system_av = Greedy_Redundancy(software_availability,sw_resource)
 
                     result_redundancy.append(best_redundancy)
@@ -340,12 +341,12 @@ for n in num_service:
     for n in range(len(unav_results)):
         mean = np.mean(time_results[n])
         std = np.std(time_results[n])
-        print(f"Mean: {mean:.2f} Std Dev: {std:.2f}")
+        print(f"{mean:.2f},{std:.2f}")
     print("Unavailability Results:")
     for n in range(len(unav_results)):
         mean = np.mean(unav_results[n])
         std = np.std(unav_results[n])
-        print(f"Mean: {mean:.6f} Std Dev: {std:.6f}")
+        print(f"{mean:.6f},{std:.6f}")
 
 
 """

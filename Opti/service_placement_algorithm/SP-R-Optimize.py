@@ -13,10 +13,10 @@ r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台�
 num_service = [20,40,60,80,100]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
-NUM_START = 10
+NUM_START = 50
 NUM_NEXT = 10
 GENERATION = 10
-average = 10
+average = 3
 
 max_redundancy = 4
 
@@ -337,7 +337,8 @@ for n in num_service:
                 calc_mean.append(sum(result_calc))
 
                 max_idx = result_availabililty.index(max(result_availabililty))
-                #print(best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
+                
+                print(r_add,best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
                 unav_mean.append(1-max(result_availabililty))
             
             time_list.append(sum(time_mean)/len(time_mean))

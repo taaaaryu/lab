@@ -9,10 +9,10 @@ from numba import njit
 h_adds = [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-num_service = [i for i in range(5,6)]  # サービス数
+num_service = [i for i in range(4,14)]  # サービス数
 server_avail = 0.99
 max_redundancy = 5
-num_repeat = 10
+num_repeat = 5
 
 
 # ソフトウェアの可用性を計算する関数
@@ -57,7 +57,7 @@ for i in range(num_repeat):
         services = [i for i in range(1, n + 1)]
         #service_resource = [1] * n
         service_avail = [0.99] * n
-        Resource = [n*2]  # サーバリソース
+        Resource = [n*3]  # サーバリソース
         unav_list = []
         time_list = []
         
@@ -83,7 +83,7 @@ for i in range(num_repeat):
                         sw_resource = np.array([len(group)*(r_add ** (len(group) - 1)) for group in comb])
                         #print(sw_resource)
 
-                        # ここから最適な冗長化の探索を行う
+                        # ここから最適な冗長化の探索を行う\/.:,;ml bnkpbnkpbnkpbnkpm,; m
                         for redundancy in all_redundancies:
                             red_array = np.array(redundancy)
                             sw_red_resource = sw_resource * red_array
@@ -106,7 +106,7 @@ for i in range(num_repeat):
                             continue
                             
                 a = max(placement_result)
-                a_idx = placement_result.index(a) #可用性が最大となる組み合わせのインデックス
+                #a_idx = placement_result.index(a) #可用性が最大となる組み合わせのインデックス
                 #print(answer[a_idx])
 
                 end = time.time()
