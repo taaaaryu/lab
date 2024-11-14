@@ -57,7 +57,7 @@ for i in range(num_repeat):
         services = [i for i in range(1, n + 1)]
         #service_resource = [1] * n
         service_avail = [0.99] * n
-        Resource = [n*3]  # サーバリソース
+        Resource = [n*2]  # サーバリソース
         unav_list = []
         time_list = []
         

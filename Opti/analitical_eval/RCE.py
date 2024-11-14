@@ -6,6 +6,7 @@ import math
 import numpy as np
 from itertools import combinations, chain, product
 import ast
+import japanize_matplotlib
 import time
 
 # Parameters
@@ -14,8 +15,8 @@ h_adds = [0.8]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
-n = 13  # Number of services
-Resourse = [n*3] 
+n = 10  # Number of services
+Resourse = [n*2] 
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
@@ -141,8 +142,8 @@ for H in Resourse:
         line = RCE_sort[-a]
 
 
-        ax.plot(before_red_RCE, unav, label = "Unavailability - RCE")
-        plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"上位10個のRCE")
+        ax.plot(before_red_RCE, unav, label = "サービス実装形態")
+        #plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"upper10")
     
         # Add `av` values to the CDF plot
         #av_sorted = sorted([1-a for a in av],reverse=True)
@@ -157,5 +158,5 @@ for H in Resourse:
         ax.legend()
         #fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
         #plt.show()
-        plt.savefig(f"RCE-Unavail-log_{h_add}.png", bbox_inches='tight', pad_inches=0)
+        plt.savefig(f"RCE-Unavail-log_{h_add}.png")
         #print(h_add)
