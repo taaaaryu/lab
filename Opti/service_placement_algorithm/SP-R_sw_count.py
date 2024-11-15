@@ -5,12 +5,12 @@ from itertools import combinations, chain, product
 import random
 # パラメータ
 
-r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [1.5]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
-#num_service = [100]  # サービス数
-num_service = [20,40,60,80,100]
+num_service = [100]  # サービス数
+#num_service = [20,40,60,80,100]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 NUM_START = 50
@@ -292,11 +292,13 @@ for n in num_service:
     Resource = [n*2]  # サーバリソース
     unav_list = []
     time_list = []
+    sw_count = []
     for r_add in r_adds:
         for H in Resource:
             time_mean = []
             unav_mean = []
-            calc_mean = [] #冗長化アルゴリズムの計算回数の平均
+            calc_mean = [] 
+            sw_mean = []
 
             for i in range(average):
                 start = time.time()
@@ -338,20 +340,24 @@ for n in num_service:
 
                 max_idx = result_availabililty.index(max(result_availabililty))
                 
-                #print(r_add,best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
+                sw_mean.append(len(best_combinations[max_idx]))
                 unav_mean.append(1-max(result_availabililty))
             
             time_list.append(sum(time_mean)/len(time_mean))
             unav_list.append(np.sum(unav_mean)/len(unav_mean))
-            print(H,r_add,sum(calc_mean)/len(calc_mean))
-            
-    print(f"{n}-result, {NUM_START}")
-    print("time")
+            sw_count.append(np.sum(sw_mean)/len(sw_mean))
+            print(n,r_add,sw_mean)
+    print(f"{n}-result, r_add={r_add}")
     for i in range(len(r_adds)*len(Resource)):
-        print(time_list[i])
-    print("unav")
+        print(sw_count[i])
+    
+'''
+print("unav")
     for i in range(len(r_adds)*len(Resource)):
         print(unav_list[i])
+'''
+    
+    
 
   
    
