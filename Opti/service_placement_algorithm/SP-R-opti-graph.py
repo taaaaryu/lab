@@ -10,15 +10,14 @@ r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台�
 
 # 定数
 START_SERVICE = 5
-num_service = [i for i in range(START_SERVICE,14)]  # サービス数
-#num_service = [20,40,60,80,100]
+#num_service = [i for i in range(START_SERVICE,14)]  # サービス数
+num_service = [20,40,60,80,100]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.99
 NUM_START = 50
 NUM_NEXT = 10
 GENERATION = 10
 average = 10
-
 max_redundancy = 4
 
 # ソフトウェアの可用性を計算する関数
@@ -36,7 +35,7 @@ def calc_software_av_matrix(services_in_sw, service_avail, server_avail):
     for k in services_array:
         sw_avail=1
         for i in range(k):
-            sw_avail *= service_avail[count]
+            sw_avail *= service_avail[count]fmhdh
             count += 1
         sw_avail_list.append(sw_avail*server_avail)
     return sw_avail_list
@@ -285,7 +284,7 @@ def Greedy_Redundancy(sw_avail,sw_resource):
 time_results = []
 unav_results = []
 for n in num_service:
-    Resource = [n*3]  # サーバリソース
+    Resource = [n*2]  # サーバリソース
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
     service_avail = [0.99]*n

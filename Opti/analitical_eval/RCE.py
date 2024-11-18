@@ -8,10 +8,11 @@ from itertools import combinations, chain, product
 import ast
 import japanize_matplotlib
 import time
+from sklearn import preprocessing #正規化用
 
 # Parameters
  # Server resource
-h_adds = [0.8]  # Increment in server count per additional service
+h_adds = [0.8,1,1.2]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
@@ -72,6 +73,10 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
 
     return r_unav, best_reds, best_comb, exist_RCE
 
+
+
+fig, ax = plt.subplots(figsize=(12, 8))
+
 # Main process
 for H in Resourse:
     alloc = H*0.9  # Minimum server resource allocation
@@ -80,7 +85,7 @@ for H in Resourse:
         
         start = time.time()
         
-        fig, ax = plt.subplots(figsize=(12, 8))
+        
 
         # Calculate and plot CDF for system availability after redundancy
         p_comb = []
@@ -129,20 +134,19 @@ for H in Resourse:
             p_max_RCE.append(max_pv)
             del placement_result_dict[max_pk]
 
-        a = 10
-
         unav, red, comb, before_red_RCE = search_best_redundancy(p_max_comb, all_red, p_max_RCE)
+        
         
         end = time.time()
         time_diff = end - start  # 処理完了後の時刻から処理開始前の時刻を減算する
-        print(f"{h_add}, {H}")
-        print(f"time = {time_diff}")  # 処理にかかった時間データを使用
+        #print(f"{h_add}, {H}")
+        #print(f"time = {time_diff}")  # 処理にかかった時間データを使用
         
         RCE_sort = sorted(before_red_RCE)
-        line = RCE_sort[-a]
+        mm = preprocessing.MinMaxScaler()
+        RCE = mm.fit_transform(np.array(before_red_RCE).reshape(-1,1))
 
-
-        ax.plot(before_red_RCE, unav,"." ,label = "サービス実装形態")
+        ax.plot(RCE, unav,"." ,label = "$r_{add}=$"+f"{h_add}におけるサービス実装形態")
         #plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"upper10")
     
         # Add `av` values to the CDF plot
@@ -150,13 +154,14 @@ for H in Resourse:
         #av_sy = [i / (len(av_sorted) - 1) for i in range(len(av_sorted))]
         #ax.plot(av_sorted, av_sy, label="System Availability After Redundancy", color="green", linestyle="--")
 
-        ax.set_title(f'　 = {h_add}, M = {n}', fontsize=14)
-        ax.set_xlabel("RCE", fontsize=12)
-        ax.set_ylabel("非可用性", fontsize=12)
-        ax.set_yscale('log')
+#ax.set_title("$r_{add}$ = "+f"{h_add}, M = {n}", fontsize=20)
+ax.set_xlabel("RCE", fontsize=20)
+ax.set_ylabel("非可用性", fontsize=20)
+ax.set_yscale('log')
 
-        ax.legend()
-        #fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
-        #plt.show()
-        plt.savefig(f"RCE-Unavail-log_{h_add}.png")
+ax.legend()
+#fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
+#plt.show()
+plt.savefig(f"RCE-Unavail-log_n={n}.svg")
+plt.savefig(f"RCE-Unavail-log_n={n}.png")
         #print(h_add)
