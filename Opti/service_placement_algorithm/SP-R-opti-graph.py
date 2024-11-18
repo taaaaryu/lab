@@ -35,7 +35,7 @@ def calc_software_av_matrix(services_in_sw, service_avail, server_avail):
     for k in services_array:
         sw_avail=1
         for i in range(k):
-            sw_avail *= service_avail[count]fmhdh
+            sw_avail *= service_avail[count]
             count += 1
         sw_avail_list.append(sw_avail*server_avail)
     return sw_avail_list
