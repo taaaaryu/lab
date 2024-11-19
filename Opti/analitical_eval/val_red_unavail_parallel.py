@@ -9,7 +9,8 @@ from numba import njit
 h_adds = [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-num_service = [i for i in range(4,14)]  # サービス数
+#num_service = [i for i in range(10,12)]  # サービス数
+num_service = [4,11]
 server_avail = 0.99
 max_redundancy = 5
 num_repeat = 5

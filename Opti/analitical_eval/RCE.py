@@ -12,15 +12,13 @@ from sklearn import preprocessing #正規化用
 
 # Parameters
  # Server resource
-h_adds = [0.8,1,1.2]  # Increment in server count per additional service
+h_adds = [0.8]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
-n = 13  # Number of services
-Resourse = [n*2] 
-softwares = [i for i in range(1, n+1)]
-services = [i for i in range(1, n + 1)]
-service_avail = [0.99]*n
+N = [9,11,13]  # Number of services
+
+
 server_avail = 0.99
 max_redundancy = 5
 
@@ -78,7 +76,11 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
 fig, ax = plt.subplots(figsize=(12, 8))
 
 # Main process
-for H in Resourse:
+for n in N:
+    softwares = [i for i in range(1, n+1)]
+    services = [i for i in range(1, n + 1)]
+    service_avail = [0.99]*n
+    H = n*2
     alloc = H*0.9  # Minimum server resource allocation
 
     for h_add in h_adds:
@@ -146,7 +148,7 @@ for H in Resourse:
         mm = preprocessing.MinMaxScaler()
         RCE = mm.fit_transform(np.array(before_red_RCE).reshape(-1,1))
 
-        ax.plot(RCE, unav,"." ,label = "$r_{add}=$"+f"{h_add}におけるサービス実装形態")
+        ax.plot(RCE, unav,".-" ,label = "$\mathrm{r_{add}}=$"+f"{h_add}, M={n}")
         #plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"upper10")
     
         # Add `av` values to the CDF plot
@@ -159,7 +161,7 @@ ax.set_xlabel("RCE", fontsize=20)
 ax.set_ylabel("非可用性", fontsize=20)
 ax.set_yscale('log')
 
-ax.legend()
+ax.legend(fontsize=14)
 #fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
 #plt.show()
 plt.savefig(f"RCE-Unavail-log_n={n}.svg")
