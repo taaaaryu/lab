@@ -7,40 +7,18 @@ import csv
 
 # パラメータ
 r_adds = [0.8, 1, 1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
-num_service = [i for i in range(5, 14)]  # サービス数
-server_avail = 0.995  # サーバの可用性 AWSEC2のインスタンスレベルのSLA
+
+# 定数
+num_service = [i for i in range(5,14)]  # サービス数
+server_avail = 0.995  # サーバの可用性 AWSEC2
 NUM_START = 50
 NUM_NEXT = 10
 GENERATION = 10
-average = 3
+average = 10
 max_redundancy = 4
 
-# CSV保存関数
-def save_results_to_csv(file_path, r_adds, num_service, avg_time_list, max_time_list, min_time_list, 
-                        avg_unav_list, max_unav_list, min_unav_list):
-    # CSVファイルを新規作成
-    with open(file_path, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        
-        # ヘッダーを書き込む
-        writer.writerow(['num_service', 'r_add', 'avg_time', 'max_time', 'min_time', 
-                         'avg_unavailability', 'max_unavailability', 'min_unavailability'])
-        
-        # データを書き込む
-        index = 0
-        for ns in num_service:
-            for r_add in r_adds:
-                writer.writerow([
-                    ns, r_add, 
-                    avg_time_list[index], max_time_list[index], min_time_list[index],
-                    avg_unav_list[index], max_unav_list[index], min_unav_list[index]
-                ])
-                index += 1
-
-    print(f"CSVファイル '{file_path}' が作成されました。")
-
 # ソフトウェアの可用性を計算する関数
-def calc_software_av(services_group, service_avail,services):
+def calc_software_av(services_group, service_avail, services):
     indices = [services.index(s) for s in services_group]
     result = 1.0
     for i in indices:
@@ -52,11 +30,11 @@ def calc_software_av_matrix(services_in_sw, service_avail, server_avail):
     sw_avail_list = []
     count = 0
     for k in services_array:
-        sw_avail=1
+        sw_avail = 1
         for i in range(k):
             sw_avail *= service_avail[count]
             count += 1
-        sw_avail_list.append(sw_avail*server_avail)
+        sw_avail_list.append(sw_avail * server_avail)
     return sw_avail_list
 
 def generate_service_combinations(services, num_software):
@@ -69,9 +47,9 @@ def generate_service_combinations(services, num_software):
     return all_combinations
 
 def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H):
-    best_RUEs = [-np.inf]*NUM_NEXT
-    best_matrices = [None]*NUM_NEXT
-    best_counts = [0]*NUM_NEXT
+    best_RUEs = [-np.inf] * NUM_NEXT
+    best_matrices = [None] * NUM_NEXT
+    best_counts = [0] * NUM_NEXT
 
     list = []
     best_matrix = matrix.copy()
@@ -114,7 +92,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
         one_list.append(len(matrix[0]))
         one_list.insert(0, 0)
 
-        if software_count <= n-1:
+        if software_count <= n - 1:
             new_sw_p_matrix = divide_sw(matrix, one_list)
             new_RUE_p = calc_RUE(new_sw_p_matrix, len(new_sw_p_matrix), service_avail, server_avail, r_add, H)
             RUE_list.append(new_RUE_p)
@@ -129,7 +107,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
             new_RUE_n = 0
 
         max_RUE = max(RUE_list)
-            
+
         if max_RUE > best_RUE:
             if max_RUE == new_RUE:
                 best_RUE = new_RUE
@@ -146,9 +124,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
             best_RUE = max_RUE
         list.append(best_RUE)
 
-                
         if best_RUE > best_RUEs[0]:
-            # 新しいRUEが現在のトップよりも高い場合、他のRUEを下にシフトして、新しいRUEを最上位に挿入する
             for i in range(NUM_NEXT - 1, 0, -1):
                 best_RUEs[i] = best_RUEs[i - 1]
                 best_matrices[i] = best_matrices[i - 1]
@@ -160,7 +136,6 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
         else:
             for i in range(1, NUM_NEXT):
                 if best_RUE > best_RUEs[i]:
-                    # 指定した位置に新しいRUEを挿入し、他のRUEを下にシフトする
                     for j in range(NUM_NEXT - 1, i, -1):
                         best_RUEs[j] = best_RUEs[j - 1]
                         best_matrices[j] = best_matrices[j - 1]
@@ -180,8 +155,8 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
     software_availability = calc_software_av_matrix(sum_matrix, service_avail, server_avail)
     sw_list = np.array(software_availability)
     system_avail = np.prod(sw_list)
-    matrix_resource = (r_add ** (sum_matrix - 1))*sum_matrix
-    total_servers = np.dot(initial_redundancy, matrix_resource)  # dot product
+    matrix_resource = (r_add ** (sum_matrix - 1)) * sum_matrix
+    total_servers = np.dot(initial_redundancy, matrix_resource)
 
     for i in range(software_count):
         initial_redundancy[i] += 1
@@ -189,7 +164,7 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
         total_servers_mask = total_servers_red <= H
         system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
         redundancy_cost_efficiency = np.where(total_servers_mask, (system_avail_red - system_avail) / (total_servers_red - total_servers), 0)
-        avg_efficiency.append(redundancy_cost_efficiency) # 1 corresponds to redundancy=2
+        avg_efficiency.append(redundancy_cost_efficiency)
         initial_redundancy[i] = 1
     return np.mean(avg_efficiency)
 
@@ -260,73 +235,61 @@ def integrate_sw(matrix, one_list):
     return new_matrix
 
 def find_ones(matrix):
-    # numpy配列に変換
     arr = np.array(matrix)
-    
-    # 1の位置を探す
     rows, cols = np.nonzero(arr)
-    
-    # 行ごとに1のある列インデックスをまとめる
     positions = [[col + 1 for col in cols[rows == row]] for row in np.unique(rows)]
-    
     return positions
 
-#各サービス実装形態が最適となる冗長化数を探る
-def Greedy_Redundancy(sw_avail,sw_resource):
+def Greedy_Redundancy(sw_avail, sw_resource):
     num_sw = len(sw_avail)
-    redundancy_list = [1]*num_sw
+    redundancy_list = [1] * num_sw
     sum_Resource = np.sum(sw_resource)
-    sw_avail_list=sw_avail
-    
+    sw_avail_list = sw_avail
+
     calc = 0
 
-    while sum_Resource<=H:
-        sw_avail_sort,sw_resource,redundancy,sw_avail = zip(*sorted(zip(sw_avail_list,sw_resource,redundancy_list,sw_avail))) #sw_availを基準にリソースもソート
+    while sum_Resource <= H:
+        sw_avail_sort, sw_resource, redundancy, sw_avail = zip(*sorted(zip(sw_avail_list, sw_resource, redundancy_list, sw_avail)))
         redundancy_list = list(redundancy)
         flag = 0
-        i=0
+        i = 0
         for i in range(num_sw):
-            if redundancy_list[i]>=max_redundancy:
+            if redundancy_list[i] >= max_redundancy:
                 continue
             plus_resource = sw_resource[i]
-            if (sum_Resource+plus_resource) <=H:
-                redundancy_list[i]+=1
-                sum_Resource+=plus_resource
+            if (sum_Resource + plus_resource) <= H:
+                redundancy_list[i] += 1
+                sum_Resource += plus_resource
                 sw_avail_list[i] = 1 - (1 - sw_avail[i]) ** int(redundancy_list[i])
-                calc+=1
+                calc += 1
                 flag += 1
                 break
         if flag == 0:
             break
 
     system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
-    return redundancy_list,sum_Resource,system_av,calc
+    return redundancy_list, sum_Resource, system_av, calc
 
-# 結果を保存
-for n in num_service:
-    softwares = [i for i in range(1, n+1)]
-    services = [i for i in range(1, n + 1)]
-    service_avail = [0.999] * n
-    Resource = [n * 2]  # サーバリソース
-    
-    # Initialize results for CSV
-    avg_time_list = []
-    max_time_list = []
-    min_time_list = []
-    avg_unav_list = []
-    max_unav_list = []
-    min_unav_list = []
+# Prepare a list to store results for CSV output
+csv_data = []
 
-    for r_add in r_adds:
+for r_add in r_adds:
+    for n in num_service:
+        softwares = [i for i in range(1, n+1)]
+        services = [i for i in range(1, n + 1)]
+        service_avail = [0.999]*n
+        Resource = [n*2]  # サーバリソース
+        unav_list = []
+        time_list = []
+        
         for H in Resource:
-            time_values = []
-            unav_values = []
+            time_mean = []
+            unav_mean = []
+            calc_mean = [] #冗長化アルゴリズムの計算回数の平均
 
-            for _ in range(average):
+            for i in range(average):
                 start = time.time()
-                best_matrix, best_software_count, best_RUE = multi_start_greedy(
-                    r_add, service_avail, server_avail, H, len(services), NUM_START
-                )
+                best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, len(services), NUM_START)
 
                 min_unav = []
                 best_combinations = []
@@ -335,47 +298,46 @@ for n in num_service:
                     if p is not None:
                         best_combinations.append(find_ones(p))
 
+                result_resource = []
+                result_redundancy = []
                 result_availabililty = []
+                result_calc = []
 
                 for comb in best_combinations:
-                    software_availability = [
-                        calc_software_av(group, service_avail, services) * server_avail 
-                        for group in comb
-                    ]
-                    sw_resource = np.array([
-                        len(group) * (r_add ** (len(group) - 1)) 
-                        for group in comb
-                    ])
-                    best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(
-                        software_availability, sw_resource
-                    )
+                    software_availability = [calc_software_av(group, service_avail, services) * server_avail for group in comb]
+                    sw_resource = np.array([len(group) * (r_add ** (len(group) - 1)) for group in comb])
+                    best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(software_availability, sw_resource)
 
+                    result_redundancy.append(best_redundancy)
+                    result_resource.append(best_resource)
                     result_availabililty.append(system_av)
+                    result_calc.append(num_calc)
 
                 end = time.time()
-                time_values.append(end - start)
-                unav_values.append(1 - max(result_availabililty))
+                time_diff = end - start
 
-            # Collect average, max, and min values for time and unavailability
-            avg_time_list.append(np.mean(time_values))
-            max_time_list.append(np.max(time_values))
-            min_time_list.append(np.min(time_values))
-            
-            avg_unav_list.append(np.mean(unav_values))
-            max_unav_list.append(np.max(unav_values))
-            min_unav_list.append(np.min(unav_values))
+                time_mean.append(time_diff)
+                calc_mean.append(sum(result_calc))
 
-    # CSVファイルに結果を保存
-    save_results_to_csv(
-        '/Users/taaaaryu/Desktop/研究室/lab/Opti/results_提案手法.csv',
-        r_adds, num_service, 
-        avg_time_list, max_time_list, min_time_list, 
-        avg_unav_list, max_unav_list, min_unav_list
-    )
-    print(f"{n}-result, {NUM_START}")
-    print("time")
-    for i in range(len(r_adds) * len(Resource)):
-        print(f"Avg: {avg_time_list[i]:.4f}, Max: {max_time_list[i]:.4f}, Min: {min_time_list[i]:.4f}")
-    print("unav")
-    for i in range(len(r_adds) * len(Resource)):
-        print(f"Avg: {avg_unav_list[i]:.6f}, Max: {max_unav_list[i]:.6f}, Min: {min_unav_list[i]:.6f}")
+                max_idx = result_availabililty.index(max(result_availabililty))
+                unav_mean.append(1 - max(result_availabililty))
+
+            # Calculate max, min, and average for time and unav
+            time_avg = sum(time_mean) / len(time_mean)
+            time_max = max(time_mean)
+            time_min = min(time_mean)
+            unav_avg = sum(unav_mean) / len(unav_mean)
+            unav_max = max(unav_mean)
+            unav_min = min(unav_mean)
+
+            # Append results to csv_data
+            csv_data.append([r_add, n, time_avg, time_max, time_min, unav_avg, unav_max, unav_min])
+
+#
+# Write results to a CSV file
+with open('results.csv', 'w', newline='') as csvfile:
+    csvwriter = csv.writer(csvfile)
+    # Write the header
+    csvwriter.writerow(['r_add', 'num_service', 'time_avg', 'time_max', 'time_min', 'unav_avg', 'unav_max', 'unav_min'])
+    # Write the data
+    csvwriter.writerows(csv_data)

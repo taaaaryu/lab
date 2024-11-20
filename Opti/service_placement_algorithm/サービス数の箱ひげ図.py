@@ -3,41 +3,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations, chain, product
 import random
+import seaborn as sns
 import csv
-
+import japanize_matplotlib
 # パラメータ
-r_adds = [0.8, 1, 1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
-num_service = [i for i in range(5, 14)]  # サービス数
-server_avail = 0.995  # サーバの可用性 AWSEC2のインスタンスレベルのSLA
+
+r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
+
+
+# 定数
+#num_service = [100]  # サービス数
+num_services = [20,40,80]
+#service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
+server_avail = 0.99
 NUM_START = 50
 NUM_NEXT = 10
 GENERATION = 10
-average = 3
+average = 10
+
 max_redundancy = 4
-
-# CSV保存関数
-def save_results_to_csv(file_path, r_adds, num_service, avg_time_list, max_time_list, min_time_list, 
-                        avg_unav_list, max_unav_list, min_unav_list):
-    # CSVファイルを新規作成
-    with open(file_path, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        
-        # ヘッダーを書き込む
-        writer.writerow(['num_service', 'r_add', 'avg_time', 'max_time', 'min_time', 
-                         'avg_unavailability', 'max_unavailability', 'min_unavailability'])
-        
-        # データを書き込む
-        index = 0
-        for ns in num_service:
-            for r_add in r_adds:
-                writer.writerow([
-                    ns, r_add, 
-                    avg_time_list[index], max_time_list[index], min_time_list[index],
-                    avg_unav_list[index], max_unav_list[index], min_unav_list[index]
-                ])
-                index += 1
-
-    print(f"CSVファイル '{file_path}' が作成されました。")
 
 # ソフトウェアの可用性を計算する関数
 def calc_software_av(services_group, service_avail,services):
@@ -302,80 +286,94 @@ def Greedy_Redundancy(sw_avail,sw_resource):
     system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
     return redundancy_list,sum_Resource,system_av,calc
 
-# 結果を保存
-for n in num_service:
+# ... existing code ...
+
+# 分布データを収集
+results = {r_add: {n: [] for n in num_services} for r_add in r_adds}
+
+for n in num_services:
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
-    service_avail = [0.999] * n
+    service_avail = [0.99] * n
     Resource = [n * 2]  # サーバリソース
     
-    # Initialize results for CSV
-    avg_time_list = []
-    max_time_list = []
-    min_time_list = []
-    avg_unav_list = []
-    max_unav_list = []
-    min_unav_list = []
-
     for r_add in r_adds:
         for H in Resource:
-            time_values = []
-            unav_values = []
-
+            
             for _ in range(average):
-                start = time.time()
+                all_service_counts = []
+                # 提案アルゴリズムの実行
                 best_matrix, best_software_count, best_RUE = multi_start_greedy(
                     r_add, service_avail, server_avail, H, len(services), NUM_START
                 )
 
-                min_unav = []
+                # 最適解であるbest_combinations[max_idx]を取得
                 best_combinations = []
-
                 for p in best_matrix:
                     if p is not None:
                         best_combinations.append(find_ones(p))
 
                 result_availabililty = []
-
                 for comb in best_combinations:
-                    software_availability = [
-                        calc_software_av(group, service_avail, services) * server_avail 
-                        for group in comb
-                    ]
-                    sw_resource = np.array([
-                        len(group) * (r_add ** (len(group) - 1)) 
-                        for group in comb
-                    ])
-                    best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(
-                        software_availability, sw_resource
-                    )
-
+                    software_availability = [calc_software_av(group, service_avail, services) * server_avail for group in comb]
+                    sw_resource = np.array([len(group) * (r_add ** (len(group) - 1)) for group in comb])
+                    _, _, system_av, _ = Greedy_Redundancy(software_availability, sw_resource)
                     result_availabililty.append(system_av)
 
-                end = time.time()
-                time_values.append(end - start)
-                unav_values.append(1 - max(result_availabililty))
+                # 最適なインデックスを選ぶ
+                max_idx = result_availabililty.index(max(result_availabililty))
+                best_service_count = [len(group) for group in best_combinations[max_idx]]
+                all_service_counts.extend(best_service_count)
 
-            # Collect average, max, and min values for time and unavailability
-            avg_time_list.append(np.mean(time_values))
-            max_time_list.append(np.max(time_values))
-            min_time_list.append(np.min(time_values))
-            
-            avg_unav_list.append(np.mean(unav_values))
-            max_unav_list.append(np.max(unav_values))
-            min_unav_list.append(np.min(unav_values))
+            # Calculate the average and standard deviation of all_service_counts for this iteration
+                average_service_count = np.mean(all_service_counts)
+                std_service_count = np.std(all_service_counts)
+            # Save the average and standard deviation to results
+                results[r_add][n].append((average_service_count, std_service_count))
 
-    # CSVファイルに結果を保存
-    save_results_to_csv(
-        '/Users/taaaaryu/Desktop/研究室/lab/Opti/results_提案手法.csv',
-        r_adds, num_service, 
-        avg_time_list, max_time_list, min_time_list, 
-        avg_unav_list, max_unav_list, min_unav_list
-    )
-    print(f"{n}-result, {NUM_START}")
-    print("time")
-    for i in range(len(r_adds) * len(Resource)):
-        print(f"Avg: {avg_time_list[i]:.4f}, Max: {max_time_list[i]:.4f}, Min: {min_time_list[i]:.4f}")
-    print("unav")
-    for i in range(len(r_adds) * len(Resource)):
-        print(f"Avg: {avg_unav_list[i]:.6f}, Max: {max_unav_list[i]:.6f}, Min: {min_unav_list[i]:.6f}")
+# ... existing code ...
+
+# グラフの生成 (r_addごとの比較)
+num_services = sorted(results[r_adds[0]].keys())  # num_serviceのリストを取得
+num_rows = len(num_services)  # 行数（サービス数のバリエーション分）
+num_cols = len(r_adds)  # 列数（r_addのバリエーション分）
+
+fig, axes = plt.subplots(num_rows, num_cols, figsize=(5 * num_cols, 5 * num_rows), sharex=True, sharey=True)  # サブプロットの設定
+
+# データ保存用のリスト
+csv_data = [["r_add", "num_service", "average_value", "std_dev"]]
+
+# 各r_addごとに平均値と標準偏差をプロット
+for row_idx, n in enumerate(num_services):
+    for col_idx, r_add in enumerate(r_adds):
+        ax = axes[row_idx, col_idx]
+        if n in results[r_add]:  # num_serviceに対応するデータが存在する場合
+            averages = [avg for avg, _ in results[r_add][n]]
+            std_devs = [std for _, std in results[r_add][n]]
+            # プロット
+            ax.errorbar(range(len(averages)), averages, yerr=std_devs, fmt='o', label=f"$r_{{add}}={r_add}$")
+            # データ保存用に追記
+            for avg, std in zip(averages, std_devs):
+                csv_data.append([r_add, n, avg, std])
+
+        # サブプロットの設定
+        ax.set_title(f"M={n}, $r_{{add}}={r_add}$", fontsize=12)
+        ax.set_ylim(0, 20)  # 縦軸の範囲を[0, 20]に統一
+        ax.set_xlabel("試行回数")
+        ax.set_ylabel("平均サービス数")
+        ax.grid(True, linestyle="--", alpha=0.7)
+        ax.legend()  # 判例を追加
+
+# CSVファイルにデータを保存
+with open('サービス数平均値と標準偏差データ.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerows(csv_data)
+
+# レイアウト調整
+plt.tight_layout(rect=[0.05, 0.05, 1, 0.95])  # 左に余白を確保し、グラフ間の重なりを防止
+plt.subplots_adjust(hspace=0.4, wspace=0.4)  # グラフ間の隙間を調整
+plt.savefig("提案手法_平均サービス数と標準偏差プロット-3.png")
+plt.savefig("提案手法_平均サービス数と標準偏差プロット-3.svg")
+plt.show()
+
+# ... existing code ...
