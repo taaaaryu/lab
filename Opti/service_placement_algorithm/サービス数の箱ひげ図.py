@@ -12,12 +12,12 @@ r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台�
 
 
 # 定数
-#num_service = [100]  # サービス数
-num_services = [20,40,80]
+num_services = [6,8,10,12]  # サービス数
+#num_services = [20,40,80]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
-server_avail = 0.99
+server_avail = 0.995
 NUM_START = 50
-NUM_NEXT = 10
+NUM_NEXT = 20
 GENERATION = 10
 average = 10
 
@@ -294,7 +294,7 @@ results = {r_add: {n: [] for n in num_services} for r_add in r_adds}
 for n in num_services:
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
-    service_avail = [0.99] * n
+    service_avail = [0.999] * n
     Resource = [n * 2]  # サーバリソース
     
     for r_add in r_adds:
@@ -372,7 +372,7 @@ with open('サービス数平均値と標準偏差データ.csv', 'w', newline='
 # レイアウト調整
 plt.tight_layout(rect=[0.05, 0.05, 1, 0.95])  # 左に余白を確保し、グラフ間の重なりを防止
 plt.subplots_adjust(hspace=0.4, wspace=0.4)  # グラフ間の隙間を調整
-plt.savefig("提案手法_平均サービス数と標準偏差プロット-3.png")
+#plt.savefig("提案手法_平均サービス数と標準偏差プロット-3.png")
 plt.savefig("提案手法_平均サービス数と標準偏差プロット-3.svg")
 plt.show()
 

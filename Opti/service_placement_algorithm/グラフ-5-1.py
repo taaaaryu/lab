@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import japanize_matplotlib
 
 # Load the two datasets
-file_proposed = '/Users/taaaaryu/Desktop/研究室/lab/Opti/results_提案手法.csv'
-file_exhaustive = '/Users/taaaaryu/Desktop/研究室/lab/Opti/results_全探索.csv'
+file_proposed = 'results_提案手法.csv'
+file_exhaustive = 'results_提案手法.csv'
 
 # Read the datasets into DataFrames
 df_proposed = pd.read_csv(file_proposed)

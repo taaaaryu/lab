@@ -15,12 +15,12 @@ h_adds = [0.8]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
-n = 13  # Number of services
+n = 5  # Number of services
 Resourse = [n*2] 
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
-service_avail = [0.99]*n
-server_avail = 0.99
+service_avail = [0.999]*n
+server_avail = 0.995
 max_redundancy = 5
 
 # Function to calculate software availability
@@ -150,7 +150,7 @@ for H in Resourse:
         #av_sy = [i / (len(av_sorted) - 1) for i in range(len(av_sorted))]
         #ax.plot(av_sorted, av_sy, label="System Availability After Redundancy", color="green", linestyle="--")
 
-        ax.set_title(f'　 = {h_add}, M = {n}', fontsize=14)
+        ax.set_title('$\mathrm{r_{add}}$= '+f'{h_add}, M = {n}', fontsize=14)
         ax.set_xlabel("RCE", fontsize=12)
         ax.set_ylabel("非可用性", fontsize=12)
         ax.set_yscale('log')
