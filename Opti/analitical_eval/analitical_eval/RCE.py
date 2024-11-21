@@ -11,11 +11,11 @@ import time
 
 # Parameters
  # Server resource
-h_adds = [0.8]  # Increment in server count per additional service
+h_adds = [0.7,1,1.3]  # Increment in server count per additional service
 POP = 0.1  # Top combinations to consider
 
 # Constants
-n = 5  # Number of services
+n = 10  # Number of services
 Resourse = [n*2] 
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]

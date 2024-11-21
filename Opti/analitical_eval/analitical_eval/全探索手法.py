@@ -7,7 +7,7 @@ from numba import njit
 
 # パラメータ
 h_adds = [0.8, 1, 1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
-num_service = [i for i in range(6, 9)]  # サービス数
+num_service = [i for i in range(6, 14)]  # サービス数
 server_avail = 0.995  # サーバの可用性
 max_redundancy = 5
 num_repeat = 10  # 各条件での計算を繰り返す回数

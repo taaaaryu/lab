@@ -9,11 +9,11 @@ import csv
 r_adds = [0.8, 1, 1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-num_service = [i for i in range(6,14)]  # サービス数
+num_service = [i for i in range(6,10)]  # サービス数
 server_avail = 0.995  # サーバの可用性 AWSEC2
 NUM_START = 50
 NUM_NEXT = 10
-GENERATION = 10
+GENERATION = 20
 average = 10
 max_redundancy = 4
 
@@ -336,7 +336,7 @@ for r_add in r_adds:
 
 #
 # Write results to a CSV file
-with open('results_提案手法.csv', 'w', newline='') as csvfile:
+with open('results.csv', 'w', newline='') as csvfile:
     csvwriter = csv.writer(csvfile)
     # Write the header
     csvwriter.writerow(['r_add', 'num_service', 'time_avg', 'time_max', 'time_min', 'unav_avg', 'unav_max', 'unav_min'])
