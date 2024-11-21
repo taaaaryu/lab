@@ -9,11 +9,11 @@ import csv
 r_adds = [0.8, 1, 1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-num_service = [i for i in range(6,14)]  # サービス数
+num_service = [i for i in range(6,11)]  # サービス数
+#num_service = [10]
 server_avail = 0.995  # サーバの可用性 AWSEC2
-NUM_START = 50
-NUM_NEXT = 10
-GENERATION = 10
+service_resource = 1  # サービスリソース
+GENERATION = 20
 average = 10
 max_redundancy = 4
 
@@ -155,14 +155,14 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
     software_availability = calc_software_av_matrix(sum_matrix, service_avail, server_avail)
     sw_list = np.array(software_availability)
     system_avail = np.prod(sw_list)
-    matrix_resource = (r_add ** (sum_matrix - 1)) * sum_matrix
+    matrix_resource = (r_add ** (sum_matrix - 1)) * sum_matrix*service_resource
     total_servers = np.dot(initial_redundancy, matrix_resource)
 
     for i in range(software_count):
         initial_redundancy[i] += 1
         total_servers_red = np.dot(initial_redundancy, matrix_resource)
         total_servers_mask = total_servers_red <= H
-        system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
+        system_avail_red = np.prod([1 - ((1 - sa) ** int(r)) for sa, r in zip(software_availability, initial_redundancy)])
         redundancy_cost_efficiency = np.where(total_servers_mask, (system_avail_red - system_avail) / (total_servers_red - total_servers), 0)
         avg_efficiency.append(redundancy_cost_efficiency)
         initial_redundancy[i] = 1
@@ -267,7 +267,7 @@ def Greedy_Redundancy(sw_avail, sw_resource):
         if flag == 0:
             break
 
-    system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
+    system_av = np.prod([1 - ((1 - sa) ** int(r)) for sa, r in zip(sw_avail, redundancy_list)])
     return redundancy_list, sum_Resource, system_av, calc
 
 # Prepare a list to store results for CSV output
@@ -278,9 +278,11 @@ for r_add in r_adds:
         softwares = [i for i in range(1, n+1)]
         services = [i for i in range(1, n + 1)]
         service_avail = [0.999]*n
-        Resource = [n*2]  # サーバリソース
+        Resource = [service_resource*n*2]  # サーバリソース
         unav_list = []
         time_list = []
+        NUM_START = n*10
+        NUM_NEXT = n*5
         
         for H in Resource:
             time_mean = []
@@ -305,7 +307,7 @@ for r_add in r_adds:
 
                 for comb in best_combinations:
                     software_availability = [calc_software_av(group, service_avail, services) * server_avail for group in comb]
-                    sw_resource = np.array([len(group) * (r_add ** (len(group) - 1)) for group in comb])
+                    sw_resource = np.array([service_resource*len(group) * (r_add ** (len(group) - 1)) for group in comb])
                     best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(software_availability, sw_resource)
 
                     result_redundancy.append(best_redundancy)
@@ -321,7 +323,7 @@ for r_add in r_adds:
 
                 max_idx = result_availabililty.index(max(result_availabililty))
                 unav_mean.append(1 - max(result_availabililty))
-                #print(unav_mean,best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
+                print(r_add,best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
 
             # Calculate max, min, and average for time and unav
             time_avg = sum(time_mean) / len(time_mean)

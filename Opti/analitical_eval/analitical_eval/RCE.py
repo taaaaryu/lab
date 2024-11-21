@@ -11,17 +11,17 @@ import time
 
 # Parameters
  # Server resource
-h_adds = [0.8]  # Increment in server count per additional service
-POP = 0.1  # Top combinations to consider
+h_adds = [0.8,1,1.2]  # Increment in server count per additional service
+service_resource=   1
 
 # Constants
-n = 5  # Number of services
-Resourse = [n*2] 
+n = 10  # Number of services
+Resourse = [1.5*n] 
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
-service_avail = [0.999]*n
-server_avail = 0.995
-max_redundancy = 5
+service_avail = [0.99]*n
+server_avail = 0.99
+max_redundancy = 4
 
 # Function to calculate software availability
 def calc_software_av(services_group, service_avail):
@@ -55,12 +55,12 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
         max_system_avail = -1
         best_redundancy = None
         for redundancy in each_redundancy:
-            total_servers = sum(redundancy[i] * (len(comb[i])*(h_add**(len(comb[i])-1))) for i in range(len(comb)))
+            total_servers = sum(redundancy[i] * (len(comb[i]*service_resource)*(h_add**(len(comb[i])-1))) for i in range(len(comb)))
             #print(comb,total_servers)
             if total_servers <= H:
-                if alloc <= total_servers:
+                #if alloc <= total_servers:
                     software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-                    system_avail = np.prod([ 1- (1 - sa) ** int(r) for sa, r in zip(software_availability, redundancy)])
+                    system_avail = np.prod([ 1- ((1 - sa) ** int(r)) for sa, r in zip(software_availability, redundancy)])
                     if system_avail > max_system_avail:
                         max_system_avail = system_avail
                         best_redundancy = redundancy
@@ -74,7 +74,7 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
 
 # Main process
 for H in Resourse:
-    alloc = H*0.9  # Minimum server resource allocation
+    #alloc = H*0.9  # Minimum server resource allocation
 
     for h_add in h_adds:
         
@@ -91,7 +91,7 @@ for H in Resourse:
             sw_redundancies = generate_redundancy_combinations(num_software, H, h_add)
             for comb in all_combinations:
                 max_system_avail = None
-                total_servers = sum(len(comb[i])*(h_add ** (len(comb[i]) - 1)) for i in range(len(comb)))
+                total_servers = sum(len(comb[i]*service_resource)*(h_add ** (len(comb[i]) - 1)) for i in range(len(comb)))
                 if total_servers <= H:
                     software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
                     system_avail =(np.prod([sa for sa in software_availability]))
@@ -102,11 +102,11 @@ for H in Resourse:
                     
                     for i in range(len(comb)):
                         initial_redundancy[i] = 2
-                        total_servers_red = sum(initial_redundancy[j] * (len(comb[j])*(h_add ** (len(comb[j]) - 1))) for j in range(len(comb)))
+                        total_servers_red = sum(initial_redundancy[j] * (len(comb[j]*service_resource)*(h_add ** (len(comb[j]) - 1))) for j in range(len(comb)))
                         #print(total_servers_red)
                         if total_servers_red <= H:   
                             software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
-                            system_avail_red = (np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)]))
+                            system_avail_red = (np.prod([1 - ((1 - sa) ** int(r)) for sa, r in zip(software_availability, initial_redundancy)]))
                             redundancy_cost_efficiency.append((system_avail_red - system_avail) / (total_servers_red - total_servers))
                         else:
                             redundancy_cost_efficiency.append(0)
@@ -129,20 +129,18 @@ for H in Resourse:
             p_max_RCE.append(max_pv)
             del placement_result_dict[max_pk]
 
-        a = 10
-
         unav, red, comb, before_red_RCE = search_best_redundancy(p_max_comb, all_red, p_max_RCE)
         
         end = time.time()
         time_diff = end - start  # 処理完了後の時刻から処理開始前の時刻を減算する
-        print(f"{h_add}, {H}")
+        print(f"{h_add}, {H}",len(unav))
         print(f"time = {time_diff}")  # 処理にかかった時間データを使用
         
         RCE_sort = sorted(before_red_RCE)
-        line = RCE_sort[-a]
 
 
-        ax.plot(before_red_RCE, unav,"." ,label = "サービス実装形態")
+
+        ax.plot(before_red_RCE, unav,"o" ,label = "サービス実装形態")
         #plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"upper10")
     
         # Add `av` values to the CDF plot
@@ -158,5 +156,5 @@ for H in Resourse:
         ax.legend()
         #fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
         #plt.show()
-        plt.savefig(f"RCE-Unavail-log_{h_add}.png")
+        plt.savefig(f"1.5-RCE-Unavail-log_{h_add}.png")
         #print(h_add)
