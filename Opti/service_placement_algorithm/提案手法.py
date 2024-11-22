@@ -9,11 +9,13 @@ import csv
 r_adds = [0.8, 1, 1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-#num_service = [i for i in range(6,11)]  # サービス数
-num_service = [20, 40, 60, 80, 100]
-server_avail = 0.995  # サーバの可用性 AWSEC2
+num_service = [i for i in range(6,14)]  # サービス数
+#num_service = [20, 40, 60, 80, 100]
+server_avail = 0.99  # サーバの可用性 AWSEC2
 service_resource = 1  # サービスリソース
-GENERATION = 20
+GENERATION = 10
+NUM_START = 50
+NUM_NEXT = 10
 average = 10
 max_redundancy = 4
 
@@ -277,12 +279,11 @@ for r_add in r_adds:
     for n in num_service:
         softwares = [i for i in range(1, n+1)]
         services = [i for i in range(1, n + 1)]
-        service_avail = [0.999]*n
+        service_avail = [0.99]*n
         Resource = [service_resource*n*2]  # サーバリソース
         unav_list = []
         time_list = []
-        NUM_START = n*10
-        NUM_NEXT = n*5
+
         
         for H in Resource:
             time_mean = []
@@ -323,7 +324,7 @@ for r_add in r_adds:
 
                 max_idx = result_availabililty.index(max(result_availabililty))
                 unav_mean.append(1 - max(result_availabililty))
-                print(r_add,best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
+                print(r_add,time_diff,1 - max(result_availabililty))
 
             # Calculate max, min, and average for time and unav
             time_avg = sum(time_mean) / len(time_mean)
@@ -338,7 +339,7 @@ for r_add in r_adds:
 
 #
 # Write results to a CSV file
-with open('results_提案手法-big.csv', 'w', newline='') as csvfile:
+with open('results_提案手法.csv', 'w', newline='') as csvfile:
     csvwriter = csv.writer(csvfile)
     # Write the header
     csvwriter.writerow(['r_add', 'num_service', 'time_avg', 'time_max', 'time_min', 'unav_avg', 'unav_max', 'unav_min'])
