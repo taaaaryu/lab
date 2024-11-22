@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import japanize_matplotlib
 
 # Load the two datasets
-file_proposed = 'results.csv'
-file_exhaustive = 'results.csv'
+file_proposed = 'results-全探索.csv'
+file_exhaustive = 'results-全探索.csv'
 
 # Read the datasets into DataFrames
 df_proposed = pd.read_csv(file_proposed)
@@ -16,11 +16,13 @@ merged_data = pd.merge(df_proposed, df_exhaustive, on=['num_service', 'r_add'], 
 # Plot settings
 r_add_values = sorted(merged_data['r_add'].unique())
 colors = ['b', 'g', 'r', 'c', 'm', 'y']  # Define a consistent color palette for r_add values
+plot_marker = ["o","s","^"]  # Define a consistent marker palette for r_add values
 
 # Function to plot comparisons with error bars and consistent colors
 def plot_comparison(metric_avg_prop, metric_max_prop, metric_min_prop,
                     metric_avg_exh, metric_max_exh, metric_min_exh,
                     ylabel, title,num):
+    marker_idx = 0
     plt.figure(figsize=(12, 8))
     for i, r_add in enumerate(r_add_values):
         data = merged_data[merged_data['r_add'] == r_add]
@@ -33,7 +35,7 @@ def plot_comparison(metric_avg_prop, metric_max_prop, metric_min_prop,
             data['num_service'],
             y_prop,
             yerr=yerr_prop,
-            fmt='o-',
+            fmt=plot_marker[marker_idx]+'-',
             color=color,
             label='提案手法 $\mathrm{r_{add}}$='+f'{r_add}'
         )
@@ -45,10 +47,11 @@ def plot_comparison(metric_avg_prop, metric_max_prop, metric_min_prop,
             data['num_service'],
             y_exh,
             yerr=yerr_exh,
-            fmt='s--',
+            fmt=plot_marker[marker_idx]+'-',
             color=color,
             label='全探索手法 $\mathrm{r_{add}}$='+f'{r_add}'
         )
+        marker_idx += 1
     
     plt.xlabel('サービス数', fontsize=16)
     plt.ylabel(ylabel, fontsize=16)

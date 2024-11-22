@@ -3,27 +3,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations, chain, product
 import random
-import seaborn as sns
 import csv
+from collections import Counter
 import japanize_matplotlib
+
 # パラメータ
-
-r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
-
+r_adds = [0.8, 1, 1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 # 定数
-#num_services = [i for i in range(5,11)]  # サービス数
-num_services = [20,40,80]
-#service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
-server_avail = 0.995
-
+num_service = [12]  # サービス数
+#num_service = [20, 40, 60, 80, 100]
+server_avail = 0.99  # サーバの可用性 AWSEC2
+service_resource = 1  # サービスリソース
 GENERATION = 10
+NUM_START = 50
+NUM_NEXT = 10
 average = 10
-
 max_redundancy = 4
 
 # ソフトウェアの可用性を計算する関数
-def calc_software_av(services_group, service_avail,services):
+def calc_software_av(services_group, service_avail, services):
     indices = [services.index(s) for s in services_group]
     result = 1.0
     for i in indices:
@@ -35,11 +34,11 @@ def calc_software_av_matrix(services_in_sw, service_avail, server_avail):
     sw_avail_list = []
     count = 0
     for k in services_array:
-        sw_avail=1
+        sw_avail = 1
         for i in range(k):
             sw_avail *= service_avail[count]
             count += 1
-        sw_avail_list.append(sw_avail*server_avail)
+        sw_avail_list.append(sw_avail * server_avail)
     return sw_avail_list
 
 def generate_service_combinations(services, num_software):
@@ -52,9 +51,9 @@ def generate_service_combinations(services, num_software):
     return all_combinations
 
 def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H):
-    best_RUEs = [-np.inf]*NUM_NEXT
-    best_matrices = [None]*NUM_NEXT
-    best_counts = [0]*NUM_NEXT
+    best_RUEs = [-np.inf] * NUM_NEXT
+    best_matrices = [None] * NUM_NEXT
+    best_counts = [0] * NUM_NEXT
 
     list = []
     best_matrix = matrix.copy()
@@ -97,7 +96,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
         one_list.append(len(matrix[0]))
         one_list.insert(0, 0)
 
-        if software_count <= n-1:
+        if software_count <= n - 1:
             new_sw_p_matrix = divide_sw(matrix, one_list)
             new_RUE_p = calc_RUE(new_sw_p_matrix, len(new_sw_p_matrix), service_avail, server_avail, r_add, H)
             RUE_list.append(new_RUE_p)
@@ -112,7 +111,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
             new_RUE_n = 0
 
         max_RUE = max(RUE_list)
-            
+
         if max_RUE > best_RUE:
             if max_RUE == new_RUE:
                 best_RUE = new_RUE
@@ -129,9 +128,7 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
             best_RUE = max_RUE
         list.append(best_RUE)
 
-                
         if best_RUE > best_RUEs[0]:
-            # 新しいRUEが現在のトップよりも高い場合、他のRUEを下にシフトして、新しいRUEを最上位に挿入する
             for i in range(NUM_NEXT - 1, 0, -1):
                 best_RUEs[i] = best_RUEs[i - 1]
                 best_matrices[i] = best_matrices[i - 1]
@@ -143,7 +140,6 @@ def greedy_search(matrix, software_count, service_avail, server_avail, r_add, H)
         else:
             for i in range(1, NUM_NEXT):
                 if best_RUE > best_RUEs[i]:
-                    # 指定した位置に新しいRUEを挿入し、他のRUEを下にシフトする
                     for j in range(NUM_NEXT - 1, i, -1):
                         best_RUEs[j] = best_RUEs[j - 1]
                         best_matrices[j] = best_matrices[j - 1]
@@ -163,16 +159,16 @@ def calc_RUE(matrix, software_count, service_avail, server_avail, r_add, H):
     software_availability = calc_software_av_matrix(sum_matrix, service_avail, server_avail)
     sw_list = np.array(software_availability)
     system_avail = np.prod(sw_list)
-    matrix_resource = (r_add ** (sum_matrix - 1))*sum_matrix
-    total_servers = np.dot(initial_redundancy, matrix_resource)  # dot product
+    matrix_resource = (r_add ** (sum_matrix - 1)) * sum_matrix*service_resource
+    total_servers = np.dot(initial_redundancy, matrix_resource)
 
     for i in range(software_count):
         initial_redundancy[i] += 1
         total_servers_red = np.dot(initial_redundancy, matrix_resource)
         total_servers_mask = total_servers_red <= H
-        system_avail_red = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(software_availability, initial_redundancy)])
+        system_avail_red = np.prod([1 - ((1 - sa) ** int(r)) for sa, r in zip(software_availability, initial_redundancy)])
         redundancy_cost_efficiency = np.where(total_servers_mask, (system_avail_red - system_avail) / (total_servers_red - total_servers), 0)
-        avg_efficiency.append(redundancy_cost_efficiency) # 1 corresponds to redundancy=2
+        avg_efficiency.append(redundancy_cost_efficiency)
         initial_redundancy[i] = 1
     return np.mean(avg_efficiency)
 
@@ -243,115 +239,116 @@ def integrate_sw(matrix, one_list):
     return new_matrix
 
 def find_ones(matrix):
-    # numpy配列に変換
     arr = np.array(matrix)
-    
-    # 1の位置を探す
     rows, cols = np.nonzero(arr)
-    
-    # 行ごとに1のある列インデックスをまとめる
     positions = [[col + 1 for col in cols[rows == row]] for row in np.unique(rows)]
-    
     return positions
 
-#各サービス実装形態が最適となる冗長化数を探る
-def Greedy_Redundancy(sw_avail,sw_resource):
+def Greedy_Redundancy(sw_avail, sw_resource):
     num_sw = len(sw_avail)
-    redundancy_list = [1]*num_sw
+    redundancy_list = [1] * num_sw
     sum_Resource = np.sum(sw_resource)
-    sw_avail_list=sw_avail
-    
+    sw_avail_list = sw_avail
+
     calc = 0
 
-    while sum_Resource<=H:
-        sw_avail_sort,sw_resource,redundancy,sw_avail = zip(*sorted(zip(sw_avail_list,sw_resource,redundancy_list,sw_avail))) #sw_availを基準にリソースもソート
+    while sum_Resource <= H:
+        sw_avail_sort, sw_resource, redundancy, sw_avail = zip(*sorted(zip(sw_avail_list, sw_resource, redundancy_list, sw_avail)))
         redundancy_list = list(redundancy)
         flag = 0
-        i=0
+        i = 0
         for i in range(num_sw):
-            if redundancy_list[i]>=max_redundancy:
+            if redundancy_list[i] >= max_redundancy:
                 continue
             plus_resource = sw_resource[i]
-            if (sum_Resource+plus_resource) <=H:
-                redundancy_list[i]+=1
-                sum_Resource+=plus_resource
+            if (sum_Resource + plus_resource) <= H:
+                redundancy_list[i] += 1
+                sum_Resource += plus_resource
                 sw_avail_list[i] = 1 - (1 - sw_avail[i]) ** int(redundancy_list[i])
-                calc+=1
+                calc += 1
                 flag += 1
                 break
         if flag == 0:
             break
 
-    system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
-    return redundancy_list,sum_Resource,system_av,calc
+    system_av = np.prod([1 - ((1 - sa) ** int(r)) for sa, r in zip(sw_avail, redundancy_list)])
+    return redundancy_list, sum_Resource, system_av, calc
 
+# Prepare a list to store results for CSV output
+csv_data = []
+service_counts = {r_add: [] for r_add in r_adds}  # To store service counts for CDF
+plot_mark = ["o","^","s"]
 
-# 分布データを収集
-results = {r_add: {n: [] for n in num_services} for r_add in r_adds}
-
-for n in num_services:
-    softwares = [i for i in range(1, n+1)]
-    services = [i for i in range(1, n + 1)]
-    service_avail = [0.999] * n
-    Resource = [n * 2]  # サーバリソース
-    NUM_START = n*10
-    NUM_NEXT = n*5
-    
+for n in num_service:
     for r_add in r_adds:
+        softwares = [i for i in range(1, n+1)]
+        services = [i for i in range(1, n + 1)]
+        service_avail = [0.99]*n
+        Resource = [service_resource*n*2]  # サーバリソース
+        unav_list = []
+        time_list = []
+        
         for H in Resource:
-            
-            all_service_counts = []  # Move this outside the average loop
-            for _ in range(average):
-                # 提案アルゴリズムの実行
-                best_matrix, best_software_count, best_RUE = multi_start_greedy(
-                    r_add, service_avail, server_avail, H, len(services), NUM_START
-                )
+            time_mean = []
+            unav_mean = []
+            calc_mean = [] #冗長化アルゴリズムの計算回数の平均
 
-                # 最適解であるbest_combinations[max_idx]を取得
+            for i in range(average):
+                start = time.time()
+                best_matrix, best_software_count, best_RUE = multi_start_greedy(r_add, service_avail, server_avail, H, len(services), NUM_START)
+
+                min_unav = []
                 best_combinations = []
+
                 for p in best_matrix:
                     if p is not None:
                         best_combinations.append(find_ones(p))
 
+                result_resource = []
+                result_redundancy = []
                 result_availabililty = []
+                result_calc = []
+
                 for comb in best_combinations:
                     software_availability = [calc_software_av(group, service_avail, services) * server_avail for group in comb]
-                    sw_resource = np.array([len(group) * (r_add ** (len(group) - 1)) for group in comb])
-                    _, _, system_av, _ = Greedy_Redundancy(software_availability, sw_resource)
+                    sw_resource = np.array([service_resource*len(group) * (r_add ** (len(group) - 1)) for group in comb])
+                    best_redundancy, best_resource, system_av, num_calc = Greedy_Redundancy(software_availability, sw_resource)
+
+                    result_redundancy.append(best_redundancy)
+                    result_resource.append(best_resource)
                     result_availabililty.append(system_av)
+                    result_calc.append(num_calc)
 
-                # 最適なインデックスを選ぶ
+                end = time.time()
+                time_diff = end - start
+
+                time_mean.append(time_diff)
+                calc_mean.append(sum(result_calc))
+
                 max_idx = result_availabililty.index(max(result_availabililty))
-                best_service_count = [len(group) for group in best_combinations[max_idx]]
-                all_service_counts.extend(best_service_count)
+                unav_mean.append(1 - max(result_availabililty))
+                #print(r_add,best_combinations[max_idx],result_redundancy[max_idx],result_resource[max_idx])
+                service_counts[r_add].extend([len(group) for group in best_combinations[max_idx]])
 
-            # Save all_service_counts to results
-            results[r_add][n].extend(all_service_counts)
+    # Plot CDF for each r_add
+    plt.figure(figsize=(10, 6))
+    mark_idx = 0
+    for r_add, counts in service_counts.items():
+        count_freq = Counter(counts)
+        sorted_keys = sorted(count_freq.keys())
+        values = [count_freq[k] / sum(count_freq.values()) for k in sorted_keys]  # Normalize to probabilities
+        cdf_values = np.cumsum(values)
 
-# グラフの生成 (r_addごとの比較)
-num_services = sorted(results[r_adds[0]].keys())  # num_serviceのリストを取得
-num_rows = len(num_services)  # 行数（サービス数のバリエーション分）
-num_cols = len(r_adds)  # 列数（r_addのバリエーション分）
+        sorted_keys = [1] + sorted_keys
+        cdf_values = [0] + list(cdf_values)
+        
+        plt.plot(sorted_keys, cdf_values, marker=plot_mark[mark_idx], linestyle='-', label=f"$r_{{add}}={r_add}$")
+        mark_idx +=1
 
-fig, axes = plt.subplots(num_rows, num_cols, figsize=(5 * num_cols, 5 * num_rows), sharex=True, sharey=True)  # サブプロットの設定
-
-# 各r_addごとにCDFをプロット
-for row_idx, n in enumerate(num_services):
-    for col_idx, r_add in enumerate(r_adds):
-        ax = axes[row_idx, col_idx]
-        if n in results[r_add]:  # num_serviceに対応するデータが存在する場合
-            data = results[r_add][n]
-            sns.ecdfplot(data, ax=ax, label=f"$r_{{add}}={r_add}$")  # CDF plot
-
-        # サブプロットの設定
-        ax.set_title(f"サービス数={n}, $r_{{add}}={r_add}$", fontsize=12)
-        ax.set_xlabel("1つのソフトウェアに含まれるサービス数", fontsize=14)
-        ax.set_ylabel("累積分布関数 (CDF)", fontsize=14)
-        ax.grid(True, linestyle="--", alpha=0.7)
-        ax.legend()  # 判例を追加
-
-# レイアウト調整
-plt.tight_layout(rect=[0.05, 0.05, 1, 0.95])  # 左に余白を確保し、グラフ間の重なりを防止
-plt.subplots_adjust(hspace=0.4, wspace=0.4)  # グラフ間の隙間を調整
-plt.savefig("提案手法_サービス数_CDFプロット.svg")
-plt.show()
+    plt.xlabel("各ソフトウェアが内包するサービス数", fontsize=18)
+    plt.ylabel("累積分布 (CDF)", fontsize=18)
+    plt.xscale("linear")
+    plt.legend(fontsize=14)
+    plt.grid(True, linestyle="--", linewidth=0.5)
+    plt.tight_layout()
+    plt.savefig(f"CDF-{r_add}-{n}.png")

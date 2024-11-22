@@ -11,17 +11,17 @@ import time
 
 # Parameters
  # Server resource
-h_adds = [0.8,1,1.2]  # Increment in server count per additional service
-service_resource=   1
+h_adds = [0.8]  # Increment in server count per additional service
+POP = 0.1  # Top combinations to consider
 
 # Constants
-n = 10  # Number of services
-Resourse = [1.5*n] 
+n = 9  # Number of services
+Resourse = [n*2] 
 softwares = [i for i in range(1, n+1)]
 services = [i for i in range(1, n + 1)]
 service_avail = [0.99]*n
 server_avail = 0.99
-max_redundancy = 4
+max_redundancy = 5
 
 # Function to calculate software availability
 def calc_software_av(services_group, service_avail):
@@ -55,7 +55,7 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
         max_system_avail = -1
         best_redundancy = None
         for redundancy in each_redundancy:
-            total_servers = sum(redundancy[i] * (len(comb[i]*service_resource)*(h_add**(len(comb[i])-1))) for i in range(len(comb)))
+            total_servers = sum(redundancy[i] * (len(comb[i])*(h_add**(len(comb[i])-1))) for i in range(len(comb)))
             #print(comb,total_servers)
             if total_servers <= H:
                 #if alloc <= total_servers:
@@ -74,7 +74,6 @@ def search_best_redundancy(all_combinations, all_redundancies,RCE):
 
 # Main process
 for H in Resourse:
-    #alloc = H*0.9  # Minimum server resource allocation
 
     for h_add in h_adds:
         
@@ -91,7 +90,7 @@ for H in Resourse:
             sw_redundancies = generate_redundancy_combinations(num_software, H, h_add)
             for comb in all_combinations:
                 max_system_avail = None
-                total_servers = sum(len(comb[i]*service_resource)*(h_add ** (len(comb[i]) - 1)) for i in range(len(comb)))
+                total_servers = sum(len(comb[i])*(h_add ** (len(comb[i]) - 1)) for i in range(len(comb)))
                 if total_servers <= H:
                     software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
                     system_avail =(np.prod([sa for sa in software_availability]))
@@ -102,7 +101,7 @@ for H in Resourse:
                     
                     for i in range(len(comb)):
                         initial_redundancy[i] = 2
-                        total_servers_red = sum(initial_redundancy[j] * (len(comb[j]*service_resource)*(h_add ** (len(comb[j]) - 1))) for j in range(len(comb)))
+                        total_servers_red = sum(initial_redundancy[j] * (len(comb[j])*(h_add ** (len(comb[j]) - 1))) for j in range(len(comb)))
                         #print(total_servers_red)
                         if total_servers_red <= H:   
                             software_availability = [calc_software_av(group, service_avail) * server_avail for group in comb]
@@ -129,18 +128,20 @@ for H in Resourse:
             p_max_RCE.append(max_pv)
             del placement_result_dict[max_pk]
 
+        a = 10
+
         unav, red, comb, before_red_RCE = search_best_redundancy(p_max_comb, all_red, p_max_RCE)
         
         end = time.time()
         time_diff = end - start  # 処理完了後の時刻から処理開始前の時刻を減算する
-        print(f"{h_add}, {H}",len(unav))
+        print(f"{h_add}, {H}")
         print(f"time = {time_diff}")  # 処理にかかった時間データを使用
         
         RCE_sort = sorted(before_red_RCE)
+        line = RCE_sort[-a]
 
 
-
-        ax.plot(before_red_RCE, unav,"o" ,label = "サービス実装形態")
+        ax.plot(before_red_RCE, unav,"." ,label = "サービス実装形態")
         #plt.vlines(line,0,1, color='g', linestyles='dotted', label = f"upper10")
     
         # Add `av` values to the CDF plot
@@ -148,13 +149,13 @@ for H in Resourse:
         #av_sy = [i / (len(av_sorted) - 1) for i in range(len(av_sorted))]
         #ax.plot(av_sorted, av_sy, label="System Availability After Redundancy", color="green", linestyle="--")
 
-        #ax.set_title('$\mathrm{r_{add}}$= '+f'{h_add}, M = {n}', fontsize=14)
-        ax.set_xlabel("RCE", fontsize=18)
-        ax.set_ylabel("非可用性", fontsize=18)
+        ax.set_title(f'　 = {h_add}, M = {n}', fontsize=14)
+        ax.set_xlabel("RCE", fontsize=12)
+        ax.set_ylabel("非可用性", fontsize=12)
         ax.set_yscale('log')
 
         ax.legend()
         #fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
-        plt.show()
-        plt.savefig(f"1.5-RCE-Unavail-log_{h_add}.png")
+        #plt.show()
+        plt.savefig(f"RCE-Unavail-log_{h_add}.png")
         #print(h_add)
