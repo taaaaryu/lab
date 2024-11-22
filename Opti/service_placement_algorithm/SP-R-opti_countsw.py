@@ -5,14 +5,14 @@ from itertools import combinations, chain, product
 import random
 # パラメータ
 
-r_adds= [0.8,1]  # サービス数が1増えるごとに使うサーバ台数の増加
+r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台数の増加
 
 
 # 定数
 num_service = [10]  # サービス数
 #num_service = [20,40,60,80,100]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
-server_avail = 0.99
+server_avail = 0.995
 NUM_START = 50
 NUM_NEXT = 10
 GENERATION = 10
@@ -288,8 +288,8 @@ def Greedy_Redundancy(sw_avail,sw_resource):
 for n in num_service:
     softwares = [i for i in range(1, n+1)]
     services = [i for i in range(1, n + 1)]
-    service_avail = [0.99]*n
-    Resource = [n*2]  # サーバリソース
+    service_avail = [0.999]*n
+    Resource = [n*1.5]  # サーバリソース
     unav_list = []
     time_list = []
     sw_count = []

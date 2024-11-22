@@ -12,12 +12,11 @@ r_adds= [0.8,1,1.2]  # サービス数が1増えるごとに使うサーバ台�
 
 
 # 定数
-num_services = [6,8,10,12]  # サービス数
-#num_services = [20,40,80]
+#num_services = [i for i in range(5,11)]  # サービス数
+num_services = [20,40,80]
 #service_avail = [0.9, 0.99, 0.99, 0.99, 0.99, 0.9, 0.99, 0.99, 0.99, 0.99]
 server_avail = 0.995
-NUM_START = 50
-NUM_NEXT = 20
+
 GENERATION = 10
 average = 10
 
@@ -286,7 +285,6 @@ def Greedy_Redundancy(sw_avail,sw_resource):
     system_av = np.prod([1 - (1 - sa) ** int(r) for sa, r in zip(sw_avail, redundancy_list)])
     return redundancy_list,sum_Resource,system_av,calc
 
-# ... existing code ...
 
 # 分布データを収集
 results = {r_add: {n: [] for n in num_services} for r_add in r_adds}
@@ -296,12 +294,14 @@ for n in num_services:
     services = [i for i in range(1, n + 1)]
     service_avail = [0.999] * n
     Resource = [n * 2]  # サーバリソース
+    NUM_START = n*10
+    NUM_NEXT = n*5
     
     for r_add in r_adds:
         for H in Resource:
             
+            all_service_counts = []  # Move this outside the average loop
             for _ in range(average):
-                all_service_counts = []
                 # 提案アルゴリズムの実行
                 best_matrix, best_software_count, best_RUE = multi_start_greedy(
                     r_add, service_avail, server_avail, H, len(services), NUM_START
@@ -325,13 +325,8 @@ for n in num_services:
                 best_service_count = [len(group) for group in best_combinations[max_idx]]
                 all_service_counts.extend(best_service_count)
 
-            # Calculate the average and standard deviation of all_service_counts for this iteration
-                average_service_count = np.mean(all_service_counts)
-                std_service_count = np.std(all_service_counts)
-            # Save the average and standard deviation to results
-                results[r_add][n].append((average_service_count, std_service_count))
-
-# ... existing code ...
+            # Save all_service_counts to results
+            results[r_add][n].extend(all_service_counts)
 
 # グラフの生成 (r_addごとの比較)
 num_services = sorted(results[r_adds[0]].keys())  # num_serviceのリストを取得
@@ -340,40 +335,23 @@ num_cols = len(r_adds)  # 列数（r_addのバリエーション分）
 
 fig, axes = plt.subplots(num_rows, num_cols, figsize=(5 * num_cols, 5 * num_rows), sharex=True, sharey=True)  # サブプロットの設定
 
-# データ保存用のリスト
-csv_data = [["r_add", "num_service", "average_value", "std_dev"]]
-
-# 各r_addごとに平均値と標準偏差をプロット
+# 各r_addごとにCDFをプロット
 for row_idx, n in enumerate(num_services):
     for col_idx, r_add in enumerate(r_adds):
         ax = axes[row_idx, col_idx]
         if n in results[r_add]:  # num_serviceに対応するデータが存在する場合
-            averages = [avg for avg, _ in results[r_add][n]]
-            std_devs = [std for _, std in results[r_add][n]]
-            # プロット
-            ax.errorbar(range(len(averages)), averages, yerr=std_devs, fmt='o', label=f"$r_{{add}}={r_add}$")
-            # データ保存用に追記
-            for avg, std in zip(averages, std_devs):
-                csv_data.append([r_add, n, avg, std])
+            data = results[r_add][n]
+            sns.ecdfplot(data, ax=ax, label=f"$r_{{add}}={r_add}$")  # CDF plot
 
         # サブプロットの設定
-        ax.set_title(f"M={n}, $r_{{add}}={r_add}$", fontsize=12)
-        ax.set_ylim(0, 20)  # 縦軸の範囲を[0, 20]に統一
-        ax.set_xlabel("試行回数")
-        ax.set_ylabel("平均サービス数")
+        ax.set_title(f"サービス数={n}, $r_{{add}}={r_add}$", fontsize=12)
+        ax.set_xlabel("1つのソフトウェアに含まれるサービス数", fontsize=14)
+        ax.set_ylabel("累積分布関数 (CDF)", fontsize=14)
         ax.grid(True, linestyle="--", alpha=0.7)
         ax.legend()  # 判例を追加
-
-# CSVファイルにデータを保存
-with open('サービス数平均値と標準偏差データ.csv', 'w', newline='', encoding='utf-8') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerows(csv_data)
 
 # レイアウト調整
 plt.tight_layout(rect=[0.05, 0.05, 1, 0.95])  # 左に余白を確保し、グラフ間の重なりを防止
 plt.subplots_adjust(hspace=0.4, wspace=0.4)  # グラフ間の隙間を調整
-#plt.savefig("提案手法_平均サービス数と標準偏差プロット-3.png")
-plt.savefig("提案手法_平均サービス数と標準偏差プロット-3.svg")
+plt.savefig("提案手法_サービス数_CDFプロット.svg")
 plt.show()
-
-# ... existing code ...
